@@ -1,0 +1,31 @@
+{
+  "externalRef": {
+    "id": "abcd1234",
+    "source": "gmc"
+  },
+  "recipient": {
+    "taxIdentifier": {
+      "name": "sautr",
+      "value": "500061334"
+    },
+    "name": {
+      "title": "Dr",
+      "forename": "Bruce",
+      "secondForename": "Hulk",
+      "surname": "Banner",
+      "honours": "Green",
+      "line1": "Line1"
+    }
+  },
+  "messageType": "mailout-batch",
+  "subject": "Reminder to file a Self Assessment return",
+  "content": "PHNlY3Rpb24gbGFuZz0iZW4iPgogICAgPHAgY2xhc3M9J2dvdnVrLWJvZHknPllvdSBtdXN0IHNlbmQgdXMgeW91ciBpbmNvbWUgYW5kIGV4cGVuc2VzIHVwZGF0ZSBmb3IgeW91ciBmb3JlaWduIHByb3BlcnR5IGluY29tZSBmb3IgdGhlIHF1YXJ0ZXIgZW5kaW5nIDA1IEp1bHkgMjAyMC48L3A+CiAgICA8cCBjbGFzcz0nZ292dWstYm9keSc+WW91IG5lZWQgdG8gc2VuZCB0aGUgdXBkYXRlcyB0byB1cyBvbiBvciBiZWZvcmUgMDUgQXVndXN0IDIwMjAuPC9wPgogICAgPHAgY2xhc3M9J2dvdnVrLWJvZHknPldlIG1heSBhd2FyZCB5b3UgYSBwZW5hbHR5IGlmIHlvdXIgcXVhcnRlcmx5IHVwZGF0ZXMgYXJlIGxhdGUuPC9wPgogICAgPHAgY2xhc3M9J2dvdnVrLWJvZHknPkl0IGlzIHlvdXIgcmVzcG9uc2liaWxpdHkgdG8gbWFrZSBzdXJlIHlvdSBzZW5kIHVzIGFsbCBuZWNlc3Nhcnkgc3VibWlzc2lvbnMuIElmIHlvdSBoYXZlIGFuIGFnZW50LCB5b3UgbWF5IHdhbnQgdG8gZGlzY3VzcyB0aGlzIHJlbWluZGVyIHdpdGggdGhlbS48L3A+CiAgICA8cCBjbGFzcz0nbWVzc2FnZV90aW1lIGZhZGVkLXRleHQtLXNtYWxsIGdvdnVrLWJvZHktcyc+TWVzc2FnZSByZWZlcmVuY2U6IElUU0FRVTEgMDUvMjIgMS4wPC9wPgo8L3NlY3Rpb24+Cg==",
+  "validFrom": "2020-05-04",
+  "details": {
+    "formId": "SA316",
+    "statutory": true,
+    "paperSent": false,
+    "sourceData": "abc",
+    "batchId": "1234"
+  }
+}

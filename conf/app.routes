@@ -1,0 +1,4 @@
+# microservice specific routes
+
+POST    /external/messages                      uk.gov.hmrc.externalmessageadapter.controllers.MessagesController.createMessage()
+POST    /message-process-eventhub-events        uk.gov.hmrc.externalmessageadapter.controllers.EventHubProcessorController.processEventHubEvents()

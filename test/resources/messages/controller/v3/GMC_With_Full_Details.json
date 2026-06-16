@@ -1,0 +1,54 @@
+{
+  "externalRef": {
+    "id": "abcd1234",
+    "source": "gmc"
+  },
+  "recipient": {
+    "taxIdentifier": {
+      "name": "sautr",
+      "value": "500061334"
+    },
+    "name": {
+      "title": "Dr",
+      "forename": "Bruce",
+      "secondForename": "Hulk",
+      "surname": "Banner",
+      "honours": "Green",
+      "line1": "Line1"
+    }
+  },
+  "messageType": "mailout-batch",
+  "subject": "Reminder to file a Self Assessment return",
+  "content": "PGgxPlRlc3QgY29udGVudDwvaDE+IDxzY3JpcHQ+d2luZG93LmFsZXJ0KCJoZWxsbyIpPC9zY3JpcHQ+IDxwPmJvZHk8L3A+",
+  "validFrom": "2020-05-04",
+  "alertQueue": "default_queue",
+  "alertDetails" : {
+    "templateId" : "cds_ddi_setup_dcs_alert",
+    "recipientName" : {
+      "title" : "Dr",
+      "forename" : "Bruce",
+      "secondForename" : "Hulk",
+      "surname" : "Banner",
+      "honours" : "Green",
+      "line1" : "Line1"
+    }
+  },
+  "tags": {
+    "mrn": "DMS7324874993",
+    "notificationType": "CDS-EXPORTS"
+  },
+  "details": {
+    "formId": "SA316",
+    "issueDate": "2019-04-08",
+    "replyTo": "test@test.com",
+    "threadId": "PGgxPlRlc3Q",
+    "enquiryType": "test",
+    "adviser": "test",
+    "waitTime": "2000",
+    "topic": "test_topic",
+    "statutory": true,
+    "paperSent": false,
+    "sourceData": "abc",
+    "batchId": "1234"
+  }
+}

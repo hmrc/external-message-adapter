@@ -1,0 +1,31 @@
+{
+  "externalRef": {
+    "id": "abcd1234",
+    "source": "some-source"
+  },
+  "recipient": {
+    "taxIdentifier": {
+      "name": "sautr",
+      "value": "1000050548"
+    },
+    "name": {
+      "title": "Dr",
+      "forename": "Bruce",
+      "secondForename": "Hulk",
+      "surname": "Banner",
+      "honours": "Green",
+      "line1": "Line1"
+    }
+  },
+  "messageType": "response-from-customer-advisor",
+  "validFrom": "2020-05-04",
+  "subject": "Test subject",
+  "content": "PGgyPlRlc3QgY29udGVudDwvaDI+",
+  "emailAlertEventUrl": "/someUrl",
+  "details": {
+    "formId": "SA316",
+    "statutory": false,
+    "paperSent": false,
+    "batchId": "1234"
+  }
+}
