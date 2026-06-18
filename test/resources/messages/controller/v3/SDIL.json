@@ -1,0 +1,33 @@
+{
+  "externalRef": {
+    "id": "abcd1234",
+    "source": "mdtp"
+  },
+  "recipient": {
+    "regime": "sdil",
+    "taxIdentifier": {
+      "name": "HMRC-OBTDS-ORG",
+      "value": "XZSD00000100024"
+    },
+    "name": {
+      "title": "Dr",
+      "forename": "Bruce",
+      "secondForename": "Hulk",
+      "surname": "Banner",
+      "honours": "Green",
+      "line1": "Line1"
+    },
+    "email": "test@test.com"
+  },
+  "alertDetails": {
+    "data": {
+      "key 1": "value 1",
+      "key2": "value2"
+    }
+  },
+  "messageType": "sdAlertMessage",
+  "validFrom": "2020-05-04",
+  "subject": "Test subject",
+  "content": "PGgyPlRlc3QgY29udGVudDwvaDI+",
+  "alertQueue": "DEFAULT"
+}

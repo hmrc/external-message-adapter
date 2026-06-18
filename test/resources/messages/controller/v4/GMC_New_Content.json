@@ -1,0 +1,38 @@
+{
+  "externalRef": {
+    "id": "abcd1234",
+    "source": "gmc"
+  },
+  "recipient": {
+    "taxIdentifier": {
+      "name": "sautr",
+      "value": "500061334"
+    },
+    "name": {
+      "title": "Dr",
+      "forename": "Bruce",
+      "secondForename": "Hulk",
+      "surname": "Banner",
+      "honours": "Green",
+      "line1": "Line1"
+    },
+    "regime":"sa"
+  },
+  "messageType": "mailout-batch",
+  "validFrom": "2020-05-04",
+  "details": {
+    "formId": "SA316",
+    "statutory": true,
+    "paperSent": false,
+    "sourceData": "abc",
+    "batchId": "1234"
+  },
+  "content": [
+    {
+      "lang": "en",
+      "subject": "Send your quarterly Income Tax update",
+      "body": "PHNlY3Rpb24gbGFuZz0iZW4iIHN1YmplY3Q9IlNlbmQgeW91ciBxdWFydGVybHkgSW5jb21lIFRheCB1cGRhdGUiIGZyb209IkhNUkMiPgogPHAgY2xhc3M9ImdvdnVrLWJvZHkiPllvdSBtdXN0IHNlbmQgdXMgeW91ciBpbmNvbWUgYW5kIGV4cGVuc2VzIHVwZGF0ZSBmb3IgeW91ciBmb3JlaWduIHByb3BlcnR5IGluY29tZSBmb3IgdGhlIHF1YXJ0ZXIgZW5kaW5nIDA1IEp1bHkgMjAyMC48L3A+CiA8cCBjbGFzcz0iZ292dWstYm9keSI+WW91IG5lZWQgdG8gc2VuZCB0aGUgdXBkYXRlcyB0byB1cyBvbiBvciBiZWZvcmUgMDUgQXVndXN0IDIwMjAuPC9wPgogPHAgY2xhc3M9ImdvdnVrLWJvZHkiPldlIG1heSBhd2FyZCB5b3UgYSBwZW5hbHR5IGlmIHlvdXIgcXVhcnRlcmx5IHVwZGF0ZXMgYXJlIGxhdGUuPC9wPgogPHAgY2xhc3M9ImdvdnVrLWJvZHkiPkl0IGlzIHlvdXIgcmVzcG9uc2liaWxpdHkgdG8gbWFrZSBzdXJlIHlvdSBzZW5kIHVzIGFsbCBuZWNlc3Nhcnkgc3VibWlzc2lvbnMuIElmIHlvdSBoYXZlIGFuIGFnZW50LCB5b3UgbWF5IHdhbnQgdG8gZGlzY3VzcyB0aGlzIHJlbWluZGVyIHdpdGggdGhlbS48L3A+CiA8cCBjbGFzcz0ibWVzc2FnZV90aW1lIGZhZGVkLXRleHQtLXNtYWxsIGdvdnVrLWJvZHktcyI+TWVzc2FnZSByZWZlcmVuY2U6IElUU0FRVTEgMDUvMjIgMS4wPC9wPgo8L3NlY3Rpb24+"
+    }
+  ],
+  "language": "en"
+}

@@ -1,0 +1,26 @@
+{
+  "externalRef": {
+    "id": "abcd1234",
+    "source": "sees"
+  },
+  "recipient": {
+    "taxIdentifier": {
+      "name": "HMRC-OBTDS-ORG",
+      "value": "XZFH00000100024"
+    },
+    "name": {
+      "title": "Dr",
+      "forename": "Bruce",
+      "secondForename": "Hulk",
+      "surname": "Banner",
+      "honours": "Green",
+      "line1": "Line1"
+    },
+    "email": "test@test.com"
+  },
+  "messageType": "fhddsAlertMessage",
+  "validFrom": "2020-05-04",
+  "subject": "Test subject",
+  "content": "PGgyPlRlc3QgY29udGVudDwvaDI+",
+  "alertQueue": "DEFAULT"
+}

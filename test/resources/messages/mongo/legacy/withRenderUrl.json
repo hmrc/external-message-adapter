@@ -1,0 +1,63 @@
+{
+  "recipient": {
+    "regime": "sa",
+    "identifier": {
+      "name": "sautr",
+      "value": "12345678"
+    }
+  },
+  "subject": "asdfg",
+  "body": {
+    "type": "print-suppression-notification",
+    "form": "SA316 2015",
+    "suppressedAt": "2015-01-02",
+    "detailsId": "C0123456781234568",
+    "issueDate": "2020-05-04"
+  },
+  "validFrom": "2015-07-17",
+  "alertFrom": "2015-07-18",
+  "alertDetails": {
+    "templateId": "templateId",
+    "data": {
+      "key 1": "value 1",
+      "key2": "value2"
+    },
+    "recipientName": {
+      "title": "Dr",
+      "forename": "Bruce",
+      "surname": "Banner",
+      "secondForename": "Hulk",
+      "honours": "Green"
+    }
+  },
+  "alerts": {
+    "alertTime": {
+      "$date": {
+        "$numberLong": "1437147608829"
+      }
+    },
+    "success": false
+  },
+  "status": "todo",
+  "rescindment": {
+    "time": {
+      "$date": {
+        "$numberLong": "1437147608829"
+      }
+    },
+    "type": "GeneratedInError",
+    "ref": "blah"
+  },
+  "hash": "O4KWyUPKQySWUVzQVfoPswBEKfN1gLe9dXi7EzCwp5U=",
+  "_id": {
+    "$oid": "55a921d84f573b6f14325b57"
+  },
+  "entityId": "23984029ufsd09u",
+  "renderUrl": {
+    "service": "abc",
+    "url": "url"
+  },
+  "tags": {
+    "notificationType": "Direct Debit"
+  }
+}

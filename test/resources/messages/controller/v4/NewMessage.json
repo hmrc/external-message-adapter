@@ -1,0 +1,38 @@
+{
+  "externalRef": {
+    "id": "abcd1234",
+    "source": "gmc"
+  },
+  "recipient": {
+    "taxIdentifier": {
+      "name": "nino",
+      "value": "CS700100A"
+    },
+    "name": {
+      "honours": "Green",
+      "surname": "Banner",
+      "line1": "Line1",
+      "secondForename": "Hulk",
+      "title": "Dr",
+      "forename": "Bruce"
+    },
+    "regime": "paye"
+  },
+  "messageType": "mailout-batch",
+  "details": {
+    "formId": "SA300",
+    "statutory": true,
+    "paperSent": false,
+    "sourceData": "abc",
+    "batchId": "1234"
+  },
+  "content": [
+    {
+      "lang": "en",
+      "subject": "Your Tax Return",
+      "body": "PGgxPlRlc3QgY29udGVudDwvaDE+IDxzY3JpcHQ+d2luZG93LmFsZXJ0KCJoZWxsbyIpPC9zY3JpcHQ+IDxwPmJvZHk8L3A+"
+    }
+  ],
+  "language": "en",
+  "validFrom": "2020-05-04"
+}

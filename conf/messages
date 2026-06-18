@@ -1,0 +1,4 @@
+send.another.message=Send another message about this
+date.text.advisor=This message was sent to you on {0}
+date.text.customer=You sent this message on {0}
+date.text.default=This message was sent on {0}

@@ -1,0 +1,31 @@
+{
+  "externalRef": {
+    "id": "abcd1234",
+    "source": "mdtp"
+  },
+  "recipient": {
+    "taxIdentifier": {
+      "name": "sautr",
+      "value": "9000055128"
+    },
+    "name": {
+      "title": "Dr",
+      "forename": "Bruce",
+      "secondForename": "Hulk",
+      "surname": "Banner",
+      "honours": "Green",
+      "line1": "Line1"
+    }
+  },
+  "messageType": "mailout-batch",
+  "subject": "Reminder to file a Self Assessment return",
+  "content": "PGgxPlRlc3QgY29udGVudDwvaDE+IDxzY3JpcHQ+d2luZG93LmFsZXJ0KCJoZWxsbyIpPC9zY3JpcHQ+IDxwPmJvZHk8L3A+",
+  "validFrom": "2020-05-04",
+  "details": {
+    "formId": "SA316",
+    "statutory": true,
+    "paperSent": false,
+    "sourceData": "abc",
+    "batchId": "1234"
+  }
+}
