@@ -11,12 +11,12 @@ object AppDependencies {
   private val pekkoHttpVersion = "1.0.1"
   private val bootstrapVersion = "10.7.0"
   private val guiceVersion = "6.0.0"
-  private val hmrcMongoVersion = "2.12.0"
+  private val hmrcMongoVersion = "2.13.0"
 
   lazy val compile: Seq[ModuleID] = Seq(
     caffeine,
     "uk.gov.hmrc"    %% "bootstrap-backend-play-30" % bootstrapVersion,
-    "uk.gov.hmrc"    %% "dc-message-library"        % "1.28.0",
+    "uk.gov.hmrc"    %% "dc-message-library"        % "1.29.0",
     "net.codingwell" %% "scala-guice"               % guiceVersion,
     "org.jsoup"       % "jsoup"                     % "1.15.4"
   )
