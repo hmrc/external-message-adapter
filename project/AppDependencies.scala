@@ -11,7 +11,7 @@ object AppDependencies {
   private val pekkoHttpVersion = "1.0.1"
   private val bootstrapVersion = "10.7.0"
   private val guiceVersion = "6.0.0"
-  private val hmrcMongoVersion = "2.12.0"
+  private val hmrcMongoVersion = "2.13.0"
 
   lazy val compile: Seq[ModuleID] = Seq(
     caffeine,
