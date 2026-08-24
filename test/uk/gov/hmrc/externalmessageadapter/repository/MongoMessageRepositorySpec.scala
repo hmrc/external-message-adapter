@@ -85,7 +85,7 @@ class MongoMessageRepositorySpec
 
       val actual: Seq[Message] = messageRepository.repo.collection.find().toFuture().futureValue
 
-      actual mustEqual messages
+      actual.sortBy(_.id) mustEqual messages.sortBy(_.id)
     }
 
     "insert four unique records and ignore the duplicate" in {
