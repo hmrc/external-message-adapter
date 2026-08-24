@@ -50,7 +50,6 @@ class PaperNotificationServiceSpec
     .configure(
       "gmc.denylist"           -> List("SA999", "SA888"),
       "metrics.enabled"        -> "false",
-      "quadiant.eis"           -> "true",
       "handle.bounce.eventhub" -> "true"
     )
     .injector()
