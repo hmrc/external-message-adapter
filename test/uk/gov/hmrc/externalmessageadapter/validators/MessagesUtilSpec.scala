@@ -8,7 +8,7 @@ package uk.gov.hmrc.externalmessageadapter.validators
 import com.codahale.metrics.SharedMetricRegistries
 import junit.framework.TestCase
 
-import java.time.{Instant, LocalDate}
+import java.time.{ Instant, LocalDate }
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.*
 import org.mongodb.scala.bson.ObjectId
@@ -16,23 +16,23 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.NOT_FOUND
-import play.api.i18n.{Lang, Messages, MessagesApi, MessagesImpl}
+import play.api.i18n.{ Lang, Messages, MessagesApi, MessagesImpl }
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.inject.{Injector, bind}
+import play.api.inject.{ Injector, bind }
 import play.api.libs.json.*
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.common.message.model.*
-import uk.gov.hmrc.common.message.model.TaxEntity.{HmrcIossInt, HmrcVpdOrg}
-import uk.gov.hmrc.domain.{Nino, SaUtr}
+import uk.gov.hmrc.common.message.model.TaxEntity.{ HmrcIossInt, HmrcVpdOrg }
+import uk.gov.hmrc.domain.{ Nino, SaUtr }
 import uk.gov.hmrc.externalmessageadapter.GenerateRandom
 import uk.gov.hmrc.externalmessageadapter.connectors.*
 import uk.gov.hmrc.externalmessageadapter.model.*
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
 import uk.gov.hmrc.externalmessageadapter.util.MessageFixtures
 import uk.gov.hmrc.externalmessageadapter.util.TestData.*
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse }
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
