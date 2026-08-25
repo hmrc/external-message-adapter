@@ -135,7 +135,8 @@ class MessagesUtil @Inject() (
         "HMRC-IOSS-NETP",
         "HMRC-AD-ORG",
         "HMRC-OSS-ORG",
-        "HMRC-PL"
+        "HMRC-PL",
+        "HMRC-VPD-ORG"
       )
         .contains(
           message.recipient.identifier.name
