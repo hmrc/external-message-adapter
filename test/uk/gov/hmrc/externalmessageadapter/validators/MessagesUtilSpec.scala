@@ -24,7 +24,7 @@ import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.common.message.model.*
-import uk.gov.hmrc.common.message.model.TaxEntity.HmrcIossInt
+import uk.gov.hmrc.common.message.model.TaxEntity.{ HmrcIossInt, HmrcVpdOrg }
 import uk.gov.hmrc.domain.{ Nino, SaUtr }
 import uk.gov.hmrc.externalmessageadapter.GenerateRandom
 import uk.gov.hmrc.externalmessageadapter.connectors.*
@@ -372,6 +372,27 @@ class MessagesUtilSpec extends PlaySpec with MockitoSugar with ScalaFutures {
 
       status(result1) mustBe CREATED
       status(result2) mustBe CREATED
+    }
+
+    "check active users, not validate preferences when enrolment given is HMRC-VPD-ORG" in new TestCase() {
+      when(mockEnrolmentProxyConnector.hasActiveUsers(any[List[String]], any[String])(any[HeaderCarrier]))
+        .thenReturn(Future.successful(true))
+      when(mockMessageConnector.postMessage(any[JsValue])(any[HeaderCarrier]))
+        .thenReturn(Future.successful(HttpResponse(CREATED, "")))
+      when(mockTaxpayerNameConnector.taxpayerName(any[SaUtr])(any[HeaderCarrier]))
+        .thenReturn(Future.successful(None))
+      when(mockRepo.insertIfUnique(any())).thenReturn(Future.successful(true))
+      when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(Success))
+
+      val message1: Message = MessageFixtures
+        .testMessageWithoutContent(recipientId = utr)
+        .copy(recipient = TaxEntity(Regime.vpd, HmrcVpdOrg("GBWK1234567WK"), None))
+
+      val request: Request[JsValue] = FakeRequest().withBody(Json.obj())
+      val hc = HeaderCarrier()
+      val result = messagesUtil.checkActiveUsers(Users(List("123456", "789012")), message1, "enrolment")(request, hc)
+
+      status(result) mustBe CREATED
     }
 
     "check when there are enrolments but no active users for the given enrolment key" in new TestCase() {
