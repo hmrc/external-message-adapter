@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -101,4 +101,10 @@ class ExternalMessageAdapterModule extends AbstractModule with ScalaModule with 
   @Singleton
   def denyListedFormIds(configuration: Configuration): Seq[String] =
     configuration.getOptional[Seq[String]]("gmc.denylist").getOrElse(Seq())
+
+  @Provides
+  @Named("bouncebackFormIds")
+  @Singleton
+  def bouncebackFormIds(configuration: Configuration): Seq[String] =
+    configuration.getOptional[Seq[String]]("bounceback.formIds").getOrElse(Seq())
 }
