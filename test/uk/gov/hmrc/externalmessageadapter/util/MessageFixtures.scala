@@ -425,7 +425,7 @@ object MessageFixtures {
         Details(
           Some(form),
           Some("print-suppression-notification"),
-          Some(validFrom.minusDays(1).toString()),
+          Some(validFrom.minusDays(1).toString),
           Some(detailsId)
         )
       ),

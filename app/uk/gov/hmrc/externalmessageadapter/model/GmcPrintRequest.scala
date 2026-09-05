@@ -26,7 +26,8 @@ case class GmcPrintRequest(
   sourceData: String,
   emailAddress: String,
   formId: Option[String] = None,
-  properties: Option[JsValue] = None
+  properties: Option[JsValue] = None,
+  externalRefId: Option[String] = None
 )
 
 object GmcPrintRequest extends Logging {
@@ -41,11 +42,12 @@ object GmcPrintRequest extends Logging {
     message.sourceData.map { sourceData =>
       val gmcRequest =
         GmcPrintRequest(
-          reason,
-          sourceData,
-          emailAddress,
-          message.body.flatMap(_.form).map(_.filterNot(_.isWhitespace)),
-          properties
+          reason = reason,
+          sourceData = sourceData,
+          emailAddress = emailAddress,
+          formId = message.body.flatMap(_.form).map(_.filterNot(_.isWhitespace)),
+          properties = properties,
+          externalRefId = message.externalRef.map(_.id)
         )
       logger debug s"EventHub Processor: >>>GMCPrint Request $gmcRequest"
       gmcRequest

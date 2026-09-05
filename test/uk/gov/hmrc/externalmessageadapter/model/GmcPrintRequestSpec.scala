@@ -25,15 +25,17 @@ import uk.gov.hmrc.externalmessageadapter.utils.SystemTimeSource
 
 class GmcPrintRequestSpec extends PlaySpec {
 
-  "GMC Print Request" must {
+  "GmcPrintRequest" must {
     val emailAddress = "a@a.com"
 
     "be created from a message" in {
       val alert = EmailAlert(Some(emailAddress), SystemTimeSource.now(), success = true, None)
-      val message = MessageFixtures.gmcMessage(form = "SA300", alerts = Some(alert))
+      val message = MessageFixtures.gmcMessage(alerts = Some(alert))
       val actual = GmcPrintRequest.fromMessage("EMAIL_BOUNCE", message, emailAddress)
 
-      actual mustBe Some(GmcPrintRequest("EMAIL_BOUNCE", "someHashedSourceData", "a@a.com", Some("SA300")))
+      actual mustBe Some(
+        GmcPrintRequest("EMAIL_BOUNCE", "someHashedSourceData", "a@a.com", Some("SA300"), None, Some("2342342341"))
+      )
     }
 
     "be created from a message removing spaces from formId" in {
@@ -41,7 +43,27 @@ class GmcPrintRequestSpec extends PlaySpec {
       val message = MessageFixtures.gmcMessage(form = "SA300 2024", alerts = Some(alert))
       val actual = GmcPrintRequest.fromMessage("EMAIL_BOUNCE", message, emailAddress)
 
-      actual mustBe Some(GmcPrintRequest("EMAIL_BOUNCE", "someHashedSourceData", "a@a.com", Some("SA3002024")))
+      actual mustBe Some(
+        GmcPrintRequest("EMAIL_BOUNCE", "someHashedSourceData", "a@a.com", Some("SA3002024"), None, Some("2342342341"))
+      )
+    }
+
+    "be created from a message" when {
+      "message has externalRef id" in {
+        val alert = EmailAlert(Some(emailAddress), SystemTimeSource.now(), success = true, None)
+        val message = MessageFixtures.gmcMessage(alerts = Some(alert))
+        val actual: Option[GmcPrintRequest] = GmcPrintRequest.fromMessage("EMAIL_BOUNCE", message, emailAddress)
+
+        actual mustBe Some(
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = "someHashedSourceData",
+            emailAddress = "a@a.com",
+            formId = Some("SA300"),
+            externalRefId = Some("2342342341")
+          )
+        )
+      }
     }
 
     "have the correct json format" in {
@@ -51,7 +73,7 @@ class GmcPrintRequestSpec extends PlaySpec {
 
       Json
         .toJson(actual)
-        .toString() mustBe """{"reason":"EMAIL_BOUNCE","sourceData":"death star plans","emailAddress":"a@a.com","formId":"SA300"}"""
+        .toString() mustBe """{"reason":"EMAIL_BOUNCE","sourceData":"death star plans","emailAddress":"a@a.com","formId":"SA300","externalRefId":"2342342341"}"""
     }
   }
 
@@ -60,6 +82,7 @@ class GmcPrintRequestSpec extends PlaySpec {
 
     "read the json correctly" in new Setup {
       Json.parse(gmcPrintRequestJsonString).as[GmcPrintRequest] mustBe gmcPrintRequest
+      Json.parse(gmcPrintRequestWithExternalRefIdJsonString).as[GmcPrintRequest] mustBe gmcPrintRequestWithExternalRefId
     }
 
     "throw exception for invalid json" in new Setup {
@@ -70,6 +93,7 @@ class GmcPrintRequestSpec extends PlaySpec {
 
     "write the object correctly" in new Setup {
       Json.toJson(gmcPrintRequest) mustBe Json.parse(gmcPrintRequestJsonString)
+      Json.toJson(gmcPrintRequestWithExternalRefId) mustBe Json.parse(gmcPrintRequestWithExternalRefIdJsonString)
     }
   }
 
@@ -101,6 +125,16 @@ class GmcPrintRequestSpec extends PlaySpec {
         properties = None
       )
 
+    val gmcPrintRequestWithExternalRefId: GmcPrintRequest =
+      GmcPrintRequest(
+        reason = TEST_REASON,
+        sourceData = TEST_SOURCE_DATA,
+        emailAddress = TEST_EMAIL_ADDRESS_VALUE,
+        formId = Some(TEST_ID),
+        properties = None,
+        externalRefId = Some("2342342341")
+      )
+
     val gmcPrintFailureResponse: GmcPrintFailureResponse =
       GmcPrintFailureResponse(reason = TEST_REASON, code = Some(TEST_CODE))
 
@@ -112,6 +146,15 @@ class GmcPrintRequestSpec extends PlaySpec {
         |"sourceData":"test_data",
         |"emailAddress":"test@test.com",
         |"formId":"test_id"
+        |}""".stripMargin
+
+    val gmcPrintRequestWithExternalRefIdJsonString: String =
+      """{
+        |"reason":"test_reason",
+        |"sourceData":"test_data",
+        |"emailAddress":"test@test.com",
+        |"formId":"test_id",
+        |"externalRefId":"2342342341"
         |}""".stripMargin
 
     val gmcPrintRequestInvalidJsonString: String =

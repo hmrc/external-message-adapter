@@ -42,6 +42,7 @@ class EISConnector @Inject() (
 )(implicit ec: ExecutionContext) {
 
   val logger: Logger = Logger(this.getClass)
+  val emptyString = ""
 
   private val eisBaseUrl = servicesConfig.baseUrl("eis")
   private val eisBearerToken = servicesConfig.getString("microservice.services.eis.bearer-token")
@@ -57,7 +58,7 @@ class EISConnector @Inject() (
 
     val eisEndPointUrl = s"$eisBaseUrl$eisEndpoint"
 
-    if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(""))) {
+    if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(emptyString))) {
       processRequestOverHIP(gmcPrintRequest, correlationId, servicesConfig)
     } else {
 
@@ -97,7 +98,7 @@ class EISConnector @Inject() (
   }
 
   private def isFormIdEligibleToBeProcessedByHIP(formId: String): Boolean =
-    bouncebackFormIds.contains(formId.toLowerCase)
+    bouncebackFormIds.contains(formId.toUpperCase)
 
   private def processRequestOverHIP(
     gmcPrintRequest: GmcPrintRequest,
@@ -106,7 +107,7 @@ class EISConnector @Inject() (
   )(implicit hc: HeaderCarrier) = {
     val hipBaseUrl = servicesConfig.baseUrl("hip")
     val hipBearerToken = servicesConfig.getString("microservice.services.hip.bearer-token")
-    val hipEndpoint = servicesConfig.getString("microservice.services.hip.endpoint")
+    val hipEndpoint = servicesConfig.getString("microservice.services.hip.emailBounceBackEndpoint")
     val hipEnvironment = servicesConfig.getString("microservice.services.hip.environment")
 
     val hipEndPointUrl = s"$hipBaseUrl$hipEndpoint"
