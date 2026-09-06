@@ -158,7 +158,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
     "send request to correct endpoint" when {
 
-      "email-bounce-back-hip is disabled" in new TestCaseWithHipDisabled {
+      "hip.email-bounce-back is disabled" in new TestCaseWithHipDisabled {
         val expectedResponse = """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
 
         wireMockServer.stubFor(
@@ -176,29 +176,95 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         result.futureValue mustBe None
       }
 
-      "email-bounce-back-hip is enabled" in new TestCaseWithHipEnabled {
-        val expectedResponse = """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+      "hip.email-bounce-back is disabled and formId is" +
+        " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipDisabled {
+          val expectedResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
 
-        wireMockServer.stubFor(
-          post(urlPathMatching(hipEndPoint))
-            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
-            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
-            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("U0582898ZZ2G4F88AAG")))
-            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
-            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
-            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
-            .withHeader(AUTHORIZATION, equalTo("Bearer AbCdEf123456"))
-            .willReturn(jsonResponse(expectedResponse, OK))
-        )
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .willReturn(jsonResponse(expectedResponse, OK))
+          )
 
-        val reprintRequest: GmcPrintRequest =
-          GmcPrintRequest("EMAIL_BOUNCE", "Some Hashed Data", "a@a.com", Some("CH(A)1700"))
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              reason = "EMAIL_BOUNCE",
+              sourceData = "Some Hashed Data",
+              emailAddress = "a@a.com",
+              formId = Some("CH(A)1708")
+            )
 
-        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
-        result.futureValue mustBe None
-      }
+          result.futureValue mustBe None
+        }
+
+      "hip.email-bounce-back is enabled and formId is" +
+        " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipEnabled {
+          val expectedResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("U0582898ZZ2G4F88AAG")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Bearer AbCdEf123456"))
+              .willReturn(jsonResponse(expectedResponse, OK))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              "EMAIL_BOUNCE",
+              "Some Hashed Data",
+              "a@a.com",
+              Some("CH(A)1700"),
+              None,
+              Some("U0582898ZZ2G4F88AAG")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+          result.futureValue mustBe None
+        }
+
+      "hip.email-bounce-back is enabled and formId is not" +
+        " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipEnabled {
+          val expectedResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("SA400")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Bearer AbCdEf123456"))
+              .willReturn(jsonResponse(expectedResponse, OK))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              "EMAIL_BOUNCE",
+              "Some Hashed Data",
+              "a@a.com",
+              Some("SA400")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+          result.futureValue mustBe None
+        }
     }
   }
 
@@ -246,6 +312,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
   trait TestCaseWithHipEnabled {
 
     val hipEndPoint = "/emailBounceback"
+    val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "authToken23432"
 
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
@@ -254,11 +321,11 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
     val mockServiceConfig: ServicesConfig = mock[ServicesConfig]
     val application: Application = new GuiceApplicationBuilder()
       .configure(
-        "play.filters.csp.nonce.enabled"         -> false,
-        "auditing.enabled"                       -> "false",
-        "microservice.metrics.graphite.enabled"  -> "false",
-        "metrics.enabled"                        -> "false",
-        "features.email-bounce-back-hip.enabled" -> true
+        "play.filters.csp.nonce.enabled"                      -> false,
+        "auditing.enabled"                                    -> "false",
+        "microservice.metrics.graphite.enabled"               -> "false",
+        "metrics.enabled"                                     -> "false",
+        "microservice.services.hip.email-bounce-back.enabled" -> true
       )
       .configure(config)
       .build()

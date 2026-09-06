@@ -48,6 +48,7 @@ class EISConnector @Inject() (
   private val eisBearerToken = servicesConfig.getString("microservice.services.eis.bearer-token")
   private val eisEndpoint = servicesConfig.getString("microservice.services.eis.endpoint")
   private val eisEnvironment = servicesConfig.getString("microservice.services.eis.environment")
+  private val isHipProcessingEnabled: Boolean = servicesConfig.getConfBool("hip.email-bounce-back.enabled", false)
 
   def post(gmcPrintRequest: GmcPrintRequest, correlationId: String): Future[Option[GmcPrintResponse]] = {
     logger.debug(
@@ -58,7 +59,7 @@ class EISConnector @Inject() (
 
     val eisEndPointUrl = s"$eisBaseUrl$eisEndpoint"
 
-    if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(emptyString))) {
+    if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(emptyString)) && isHipProcessingEnabled) {
       processRequestOverHIP(gmcPrintRequest, correlationId, servicesConfig)
     } else {
 
@@ -106,8 +107,8 @@ class EISConnector @Inject() (
     servicesConfig: ServicesConfig
   )(implicit hc: HeaderCarrier) = {
     val hipBaseUrl = servicesConfig.baseUrl("hip")
-    val hipBearerToken = servicesConfig.getString("microservice.services.hip.bearer-token")
-    val hipEndpoint = servicesConfig.getString("microservice.services.hip.emailBounceBackEndpoint")
+    val hipBearerToken = servicesConfig.getString("microservice.services.hip.email-bounce-back.bearer-token")
+    val hipEndpoint = servicesConfig.getString("microservice.services.hip.email-bounce-back.endPoint")
     val hipEnvironment = servicesConfig.getString("microservice.services.hip.environment")
 
     val hipEndPointUrl = s"$hipBaseUrl$hipEndpoint"
