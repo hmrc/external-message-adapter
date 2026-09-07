@@ -26,6 +26,7 @@ import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, StringContextOps }
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import play.api.libs.ws.writeableOf_JsValue
+import uk.gov.hmrc.externalmessageadapter.utils.Util.{ EMPTY_STRING, uuidOfLength32 }
 
 import java.net.URI
 import java.time.format.DateTimeFormatter
@@ -42,7 +43,6 @@ class EISConnector @Inject() (
 )(implicit ec: ExecutionContext) {
 
   val logger: Logger = Logger(this.getClass)
-  val emptyString = ""
 
   private val eisBaseUrl = servicesConfig.baseUrl("eis")
   private val eisBearerToken = servicesConfig.getString("microservice.services.eis.bearer-token")
@@ -59,13 +59,13 @@ class EISConnector @Inject() (
 
     val eisEndPointUrl = s"$eisBaseUrl$eisEndpoint"
 
-    if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(emptyString)) && isHipProcessingEnabled) {
-      processRequestOverHIP(gmcPrintRequest, correlationId, servicesConfig)
+    if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(EMPTY_STRING)) && isHipProcessingEnabled) {
+      processRequestOverHIP(gmcPrintRequest, servicesConfig)
     } else {
 
       httpClient
         .post(url"$eisEndPointUrl")
-        .withBody(Json.toJson(gmcPrintRequest))
+        .withBody(Json.toJson(gmcPrintRequest.copy(externalRefId = None)))
         .setHeader(
           (CONTENT_TYPE, MimeTypes.JSON),
           (ACCEPT, MimeTypes.JSON),
@@ -103,7 +103,6 @@ class EISConnector @Inject() (
 
   private def processRequestOverHIP(
     gmcPrintRequest: GmcPrintRequest,
-    correlationId: String,
     servicesConfig: ServicesConfig
   )(implicit hc: HeaderCarrier) = {
     val hipBaseUrl = servicesConfig.baseUrl("hip")
@@ -112,6 +111,7 @@ class EISConnector @Inject() (
     val hipEnvironment = servicesConfig.getString("microservice.services.hip.environment")
 
     val hipEndPointUrl = s"$hipBaseUrl$hipEndpoint"
+    val correlationId = uuidOfLength32
 
     httpClient
       .post(url"$hipEndPointUrl")

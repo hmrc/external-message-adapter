@@ -23,6 +23,7 @@ import uk.gov.hmrc.externalmessageadapter.connectors.EISConnector
 import uk.gov.hmrc.externalmessageadapter.model.{ GmcPrintRequest, GmcPrintResponse }
 import uk.gov.hmrc.common.message.model.Message
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
+import uk.gov.hmrc.externalmessageadapter.utils.Util
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -44,7 +45,6 @@ class PaperNotificationService @Inject() (
 ) extends Logging {
 
   lazy val audit: Audit = new Audit(appName, auditConnector)
-  private val ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE = 31
 
   def sendGmcPaperNotification(message: Message, emailAddress: String, properties: Option[JsValue] = None)(implicit
     hc: HeaderCarrier,
@@ -65,8 +65,8 @@ class PaperNotificationService @Inject() (
           None
         }
       case Some(request) =>
-        val correlationId =
-          UUID.randomUUID().toString.replace("-", "").substring(0, ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE)
+        val correlationId = Util.uuidOfLength31
+
         (for {
           created <- eisConnector.post(request, correlationId)
           _ = logger warn s"Eventhub Processor $created"
