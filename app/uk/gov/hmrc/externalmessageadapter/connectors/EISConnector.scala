@@ -18,6 +18,7 @@ package uk.gov.hmrc.externalmessageadapter.connectors
 
 import play.api.Logger
 import play.api.http.HeaderNames.{ ACCEPT, AUTHORIZATION, CONTENT_TYPE, DATE }
+import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.http.{ MimeTypes, Status }
 import play.api.libs.json.Json
 import uk.gov.hmrc.externalmessageadapter.model.{ GmcPrintRequest, GmcPrintResponse, GmcPrintResponseBody }
@@ -26,7 +27,7 @@ import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, StringContextOps }
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import play.api.libs.ws.writeableOf_JsValue
-import uk.gov.hmrc.externalmessageadapter.utils.Util.{ EMPTY_STRING, uuidOfLength32 }
+import uk.gov.hmrc.externalmessageadapter.utils.Util.{ COMMA_WITH_SPACE, EMPTY_STRING, uuidOfLength32 }
 
 import java.net.URI
 import java.time.format.DateTimeFormatter
@@ -77,18 +78,18 @@ class EISConnector @Inject() (
         .execute[HttpResponse]
         .map {
           case resp if resp.status == Status.OK =>
-            val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(", ")
+            val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
             logger.warn(s">>>GmcPrintRequest OK, CorrelationId - $correlationId" + s)
             None
           case resp if resp.status == Status.BAD_REQUEST =>
-            val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(", ")
+            val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
             logger.debug(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId" + s + resp.body)
             resp.json
               .asOpt[GmcPrintResponseBody]
               .map(_.toGmcPrintResponse(resp.status))
               .orElse(Some(GmcPrintResponse.unknownGmcPrintResponse(resp.status)))
           case resp =>
-            val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(", ")
+            val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
             logger.debug(s">>>GmcPrintRequest OTHER, CorrelationId - $correlationId" + s + resp.body)
             resp.json
               .asOpt[GmcPrintResponseBody]
@@ -127,23 +128,33 @@ class EISConnector @Inject() (
       .execute[HttpResponse]
       .map {
         case resp if resp.status == Status.OK =>
-          val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(", ")
-          logger.warn(s">>>GmcPrintRequest OK, CorrelationId - $correlationId" + s)
+          val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
+          logger.warn(s">>>GmcPrintRequest OK, CorrelationId - $correlationId $responseHeaders")
+
           None
+
         case resp if resp.status == Status.BAD_REQUEST =>
-          val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(", ")
-          logger.debug(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId" + s + resp.body)
+          val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
+          logger.warn(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}")
+
           resp.json
             .asOpt[GmcPrintResponseBody]
-            .map(_.toGmcPrintResponse(resp.status))
-            .orElse(Some(GmcPrintResponse.unknownGmcPrintResponse(resp.status)))
+            .map(_.toGmcPrintHIPResponse(resp.status))
+            .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
+
         case resp =>
-          val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(", ")
-          logger.debug(s">>>GmcPrintRequest OTHER, CorrelationId - $correlationId" + s + resp.body)
+          val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
+          logger.warn(
+            s">>>GmcPrintRequest response code ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
+          )
           resp.json
             .asOpt[GmcPrintResponseBody]
-            .map(_.toGmcPrintResponse(resp.status))
-            .orElse(Some(GmcPrintResponse.unknownGmcPrintResponse(resp.status)))
+            .map(_.toGmcPrintHIPResponse(resp.status))
+            .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
+      }
+      .recover { case _ =>
+        logger.error("Either unexpected HIP response or technical error occurred")
+        Option(GmcPrintResponse.unknownGmcPrintResponseFromHip(NOT_IMPLEMENTED))
       }
   }
 }

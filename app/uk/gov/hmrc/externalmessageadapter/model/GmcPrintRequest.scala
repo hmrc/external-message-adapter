@@ -18,7 +18,8 @@ package uk.gov.hmrc.externalmessageadapter.model
 
 import play.api.Logging
 import play.api.libs.json.{ JsValue, Json, OFormat }
-import uk.gov.hmrc.externalmessageadapter.model.GmcPrintResponse.UNKNOWN_EIS_ERROR
+import play.api.mvc.Results.Status
+import uk.gov.hmrc.externalmessageadapter.model.GmcPrintResponse.{ UNKNOWN_EIS_ERROR, UNKNOWN_HIP_ERROR }
 import uk.gov.hmrc.common.message.model.Message
 
 case class GmcPrintRequest(
@@ -60,6 +61,11 @@ case class GmcPrintResponseBody(failures: List[GmcPrintFailureResponse]) {
     val message = failures.headOption.map(_.reason).getOrElse(UNKNOWN_EIS_ERROR)
     GmcPrintResponse(status, message)
   }
+
+  def toGmcPrintHIPResponse(status: Int): GmcPrintResponse = {
+    val message = failures.headOption.map(_.reason).getOrElse(UNKNOWN_HIP_ERROR)
+    GmcPrintResponse(status, message)
+  }
 }
 
 object GmcPrintResponseBody {
@@ -72,7 +78,11 @@ case class GmcPrintFailureResponse(reason: String, code: Option[String])
 object GmcPrintResponse {
 
   val UNKNOWN_EIS_ERROR = "Unknown eis error"
+  val UNKNOWN_HIP_ERROR = "Unknown HIP error"
+
   def unknownGmcPrintResponse(status: Int): GmcPrintResponse =
     GmcPrintResponse(status, UNKNOWN_EIS_ERROR)
+
+  def unknownGmcPrintResponseFromHip(status: Int): GmcPrintResponse = GmcPrintResponse(status, UNKNOWN_HIP_ERROR)
 
 }

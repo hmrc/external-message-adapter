@@ -22,6 +22,8 @@ import uk.gov.hmrc.common.message.model.EmailAlert
 import uk.gov.hmrc.externalmessageadapter.util.MessageFixtures
 import uk.gov.hmrc.externalmessageadapter.util.TestData.{ TEST_CODE, TEST_EMAIL_ADDRESS_VALUE, TEST_ID, TEST_REASON, TEST_SOURCE_DATA }
 import uk.gov.hmrc.externalmessageadapter.utils.SystemTimeSource
+import play.api.http.Status.{ BAD_REQUEST, NOT_FOUND }
+import uk.gov.hmrc.externalmessageadapter.model.GmcPrintResponse.{ UNKNOWN_EIS_ERROR, UNKNOWN_HIP_ERROR }
 
 class GmcPrintRequestSpec extends PlaySpec {
 
@@ -112,6 +114,62 @@ class GmcPrintRequestSpec extends PlaySpec {
 
     "write the object correctly" in new Setup {
       Json.toJson(gmcPrintResponseBody) mustBe Json.parse(gmcPrintResponseBodyJsonString)
+    }
+  }
+
+  "GmcPrintResponseBody.toGmcPrintResponse" must {
+
+    "return correct value for provided status" when {
+
+      "failures list is empty" in {
+        val gmcPrintResBody = GmcPrintResponseBody(List.empty)
+
+        gmcPrintResBody.toGmcPrintResponse(BAD_REQUEST) mustBe GmcPrintResponse(BAD_REQUEST, UNKNOWN_EIS_ERROR)
+      }
+
+      "failures list contains failures list with NOT_FOUND error" in {
+        val responseReason = "not found error occurred"
+        val gmcPrintResBody =
+          GmcPrintResponseBody(List(GmcPrintFailureResponse(responseReason, Some(NOT_FOUND.toString))))
+
+        gmcPrintResBody.toGmcPrintResponse(NOT_FOUND) mustBe GmcPrintResponse(NOT_FOUND, responseReason)
+      }
+
+    }
+  }
+
+  "GmcPrintResponseBody.toGmcPrintHIPResponse" must {
+
+    "return correct value for provided status" when {
+
+      "failures list is empty" in {
+        val gmcPrintResBody = GmcPrintResponseBody(List.empty)
+
+        gmcPrintResBody.toGmcPrintHIPResponse(BAD_REQUEST) mustBe GmcPrintResponse(BAD_REQUEST, UNKNOWN_HIP_ERROR)
+      }
+
+      "failures list contains failures list with NOT_FOUND error" in {
+        val responseReason = "not found error occurred"
+        val gmcPrintResBody =
+          GmcPrintResponseBody(List(GmcPrintFailureResponse(responseReason, Some(NOT_FOUND.toString))))
+
+        gmcPrintResBody.toGmcPrintHIPResponse(NOT_FOUND) mustBe GmcPrintResponse(NOT_FOUND, responseReason)
+      }
+
+    }
+  }
+
+  "GmcPrintResponse" must {
+
+    "return correct value for unknownGmcPrintResponse" in {
+      GmcPrintResponse.unknownGmcPrintResponse(BAD_REQUEST) mustBe GmcPrintResponse(BAD_REQUEST, UNKNOWN_EIS_ERROR)
+    }
+
+    "return correct value for unknownGmcPrintResponseFromHip" in {
+      GmcPrintResponse.unknownGmcPrintResponseFromHip(BAD_REQUEST) mustBe GmcPrintResponse(
+        BAD_REQUEST,
+        UNKNOWN_HIP_ERROR
+      )
     }
   }
 

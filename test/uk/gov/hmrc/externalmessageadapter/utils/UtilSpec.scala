@@ -17,22 +17,30 @@
 package uk.gov.hmrc.externalmessageadapter.utils
 
 import uk.gov.hmrc.externalmessageadapter.util.SpecBase
-import uk.gov.hmrc.externalmessageadapter.utils.Util.HYPHEN
+import uk.gov.hmrc.externalmessageadapter.utils.Util.*
 
 class UtilSpec extends SpecBase {
+
+  "constants" should {
+    "return the correct values" in {
+      HYPHEN mustBe "-"
+      EMPTY_STRING mustBe ""
+      COMMA_WITH_SPACE mustBe ", "
+    }
+  }
 
   "uuidOfLength31" should {
 
     "return the UUID string of length 31 and without any hyphen" in {
-      Util.uuidOfLength31.length mustBe 31
-      assert(!Util.uuidOfLength31.contains(HYPHEN))
+      uuidOfLength31.length mustBe 31
+      assert(!uuidOfLength31.contains(HYPHEN))
     }
   }
 
   "uuidOfLength32" should {
     "return the UUID string of length 32 and without any hyphen" in {
-      Util.uuidOfLength32.length mustBe 32
-      assert(!Util.uuidOfLength32.contains(HYPHEN))
+      uuidOfLength32.length mustBe 32
+      assert(!uuidOfLength32.contains(HYPHEN))
     }
   }
 }

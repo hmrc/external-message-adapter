@@ -24,6 +24,7 @@ object Util {
   private val LENGTH_32 = 32
   val HYPHEN = "-"
   val EMPTY_STRING = ""
+  val COMMA_WITH_SPACE = ", "
 
   def uuidOfLength31: String =
     UUID

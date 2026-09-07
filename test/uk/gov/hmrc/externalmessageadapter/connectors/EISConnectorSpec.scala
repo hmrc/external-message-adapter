@@ -34,9 +34,10 @@ import uk.gov.hmrc.http.client.{ HttpClientV2, RequestBuilder }
 import uk.gov.hmrc.http.{ Authorization, HeaderCarrier, HttpReads, HttpResponse }
 import com.typesafe.config.ConfigFactory
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import com.github.tomakehurst.wiremock.client.WireMock.{ badRequest, created, equalTo, jsonResponse, matchingJsonPath, ok, post, serviceUnavailable, trace, urlPathMatching }
-import play.api.http.Status.{ BAD_REQUEST, INTERNAL_SERVER_ERROR, OK }
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import play.api.http.Status.{ BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, NOT_IMPLEMENTED, OK, REQUEST_TIMEOUT, SERVICE_UNAVAILABLE, UNAUTHORIZED }
 import play.api.libs.json.Json
+import uk.gov.hmrc.externalmessageadapter.model.GmcPrintResponse.UNKNOWN_HIP_ERROR
 
 import java.net.URL
 import scala.concurrent.{ ExecutionContext, Future }
@@ -205,8 +206,6 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
       "hip.email-bounce-back is enabled and formId is" +
         " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipEnabled {
-          val expectedResponse =
-            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
 
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
@@ -218,7 +217,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Bearer AbCdEf123456"))
-              .willReturn(jsonResponse(expectedResponse, OK))
+              .willReturn(ok.withHeader("correlationid", "e470d65899f74292a4a1ed12c72f1337"))
           )
 
           val reprintRequest: GmcPrintRequest =
@@ -265,6 +264,285 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
           result.futureValue mustBe None
         }
+    }
+
+    "return correct error response" when {
+
+      "request is sent to hip endpoint and upstream sends BAD_REQUEST" in new TestCaseWithHipEnabled {
+        val expectedResponse: String =
+          """{
+            |    "failures": [
+            |      {
+            |        "type": "badRequest",
+            |        "reason": "source data is incorrect"
+            |      }
+            |    ]
+            |}""".stripMargin
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(hipEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .willReturn(jsonResponse(expectedResponse, BAD_REQUEST))
+        )
+
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = "Some Hashed Data",
+            emailAddress = "a@a.com",
+            formId = Some("CH(A)1708")
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+        result.futureValue mustBe Some(GmcPrintResponse(BAD_REQUEST, "source data is incorrect"))
+      }
+
+      "request is sent to hip endpoint and upstream sends UNAUTHORIZED response" in new TestCaseWithHipEnabled {
+        val expectedResponse: String =
+          """{
+            |    "failures": [
+            |      {
+            |        "type": "unauthorized",
+            |        "reason": "Authentication information is missing or invalid"
+            |      }
+            |    ]
+            |}""".stripMargin
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(hipEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .willReturn(jsonResponse(expectedResponse, UNAUTHORIZED))
+        )
+
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = "Some Hashed Data",
+            emailAddress = "a@a.com",
+            formId = Some("CH(A)1708")
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+        result.futureValue mustBe Some(
+          GmcPrintResponse(UNAUTHORIZED, "Authentication information is missing or invalid")
+        )
+      }
+
+      "request is sent to hip endpoint and upstream sends FORBIDDEN response" in new TestCaseWithHipEnabled {
+        val expectedResponse: String =
+          """{
+            |    "failures": [
+            |      {
+            |        "type": "Forbidden",
+            |        "reason": "invalid credentials were used"
+            |      }
+            |    ]
+            |}""".stripMargin
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(hipEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .willReturn(jsonResponse(expectedResponse, FORBIDDEN))
+        )
+
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = "Some Hashed Data",
+            emailAddress = "a@a.com",
+            formId = Some("CH(A)1708")
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+        result.futureValue mustBe Some(GmcPrintResponse(FORBIDDEN, "invalid credentials were used"))
+      }
+
+      "request is sent to hip endpoint and upstream sends REQUEST_TIMEOUT response" in new TestCaseWithHipEnabled {
+        val expectedResponse: String =
+          """{
+            |    "failures": [
+            |      {
+            |        "type": "requestTimeout",
+            |        "reason": "request took longer than expected and was timed out"
+            |      }
+            |    ]
+            |}""".stripMargin
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(hipEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .willReturn(jsonResponse(expectedResponse, REQUEST_TIMEOUT))
+        )
+
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = "Some Hashed Data",
+            emailAddress = "a@a.com",
+            formId = Some("CH(A)1708")
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+        result.futureValue mustBe Some(
+          GmcPrintResponse(REQUEST_TIMEOUT, "request took longer than expected and was timed out")
+        )
+      }
+
+      "request is sent to hip endpoint and upstream sends NOT_FOUND response" in new TestCaseWithHipEnabled {
+        val expectedResponse: String =
+          """{
+            |    "failures": [
+            |      {
+            |        "type": "notFound",
+            |        "reason": "request not found"
+            |      }
+            |    ]
+            |}""".stripMargin
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(hipEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .willReturn(jsonResponse(expectedResponse, NOT_FOUND))
+        )
+
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = "Some Hashed Data",
+            emailAddress = "a@a.com",
+            formId = Some("CH(A)1708")
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+        result.futureValue mustBe Some(
+          GmcPrintResponse(NOT_FOUND, "request not found")
+        )
+      }
+
+      "request is sent to hip endpoint and upstream sends INTERNAL_SERVER_ERROR response" in new TestCaseWithHipEnabled {
+        val expectedResponse: String =
+          """{
+            |    "failures": [
+            |      {
+            |        "type": "serverError",
+            |        "reason": "server error occurred due to network issue"
+            |      }
+            |    ]
+            |}""".stripMargin
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(hipEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .willReturn(jsonResponse(expectedResponse, INTERNAL_SERVER_ERROR))
+        )
+
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = "Some Hashed Data",
+            emailAddress = "a@a.com",
+            formId = Some("CH(A)1708")
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+        result.futureValue mustBe Some(
+          GmcPrintResponse(INTERNAL_SERVER_ERROR, "server error occurred due to network issue")
+        )
+      }
+
+      "request is sent to hip endpoint and upstream sends SERVICE_UNAVAILABLE response" in new TestCaseWithHipEnabled {
+        val expectedResponse: String =
+          """{
+            |    "failures": [
+            |      {
+            |        "type": "serverError",
+            |        "reason": "service is not available right now"
+            |      }
+            |    ]
+            |}""".stripMargin
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(hipEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .willReturn(jsonResponse(expectedResponse, SERVICE_UNAVAILABLE))
+        )
+
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = "Some Hashed Data",
+            emailAddress = "a@a.com",
+            formId = Some("CH(A)1708")
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+        result.futureValue mustBe Some(
+          GmcPrintResponse(SERVICE_UNAVAILABLE, "service is not available right now")
+        )
+      }
+
+      "request is sent to hip endpoint and upstream sends unexpected response code" in new TestCaseWithHipEnabled {
+        val expectedResponse: String =
+          """{
+            |    "failures": [
+            |      {
+            |        "type": "serverError",
+            |        "reason": "service is not available right now"
+            |      }
+            |    ]
+            |}""".stripMargin
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(hipEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .willReturn(noContent())
+        )
+
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = "Some Hashed Data",
+            emailAddress = "a@a.com",
+            formId = Some("CH(A)1708")
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+        result.futureValue mustBe Some(
+          GmcPrintResponse(NOT_IMPLEMENTED, UNKNOWN_HIP_ERROR)
+        )
+      }
     }
   }
 
