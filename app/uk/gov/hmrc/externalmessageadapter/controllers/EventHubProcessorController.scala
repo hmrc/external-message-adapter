@@ -49,12 +49,15 @@ class EventHubProcessorController @Inject() (
           case (BounceEvent | DeliveredEvent, None) =>
             logger.debug("EventHub Processor: The incoming event payload is missing the 'messageId'")
             Future.successful(NoContent)
+
           case (BounceEvent, Some(id)) =>
             logger debug s"EventHub Processor: handle $eventType"
             messageService.processBounceEvent(id, event.event.emailAddress)
+
           case (DeliveredEvent, Some(id)) =>
             logger debug s"EventHub Processor: handle $eventType"
             messageService.processDeliveredEvent(id, event.event.detected)
+
           case (UnhandledEvent, _) =>
             logger debug s"EventHub Processor: Unhandled event $eventType"
             Future.successful(NoContent)

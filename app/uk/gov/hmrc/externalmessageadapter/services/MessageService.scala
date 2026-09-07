@@ -47,11 +47,13 @@ class MessageService @Inject() (
       case None =>
         logger.debug(s"EventHub Processor: there is no message in collection for the is $messageId")
         Future.successful(NoContent)
+
       case Some(message) if isDenyListed(message.body) =>
         logger.debug(
           s"EventHub Processor: the formId used for the message $messageId is in the gmc denied list $denyListedFormIds"
         )
         paperNotificationService.auditOnly(message).map(_ => NoContent)
+
       case Some(message) =>
         val properties = message.body.flatMap(_.properties)
         paperNotificationService

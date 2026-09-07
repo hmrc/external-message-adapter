@@ -38,8 +38,8 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 class EventHubProcessorControllerSpec extends PlaySpec with ScalaFutures with MetricOrchestratorStub {
 
-  val mockMessageService = mock[MessageService]
-  val mockMessageUtils = mock[MessagesUtil]
+  val mockMessageService: MessageService = mock[MessageService]
+  val mockMessageUtils: MessagesUtil = mock[MessagesUtil]
 
   private val injector: Injector = new GuiceApplicationBuilder()
     .overrides(bind[MetricOrchestrator].toInstance(mockMetricOrchestrator))

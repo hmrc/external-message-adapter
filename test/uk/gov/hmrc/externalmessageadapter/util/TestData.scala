@@ -17,9 +17,11 @@
 package uk.gov.hmrc.externalmessageadapter.util
 
 import org.mongodb.scala.bson.ObjectId
-import uk.gov.hmrc.common.message.model.TaxpayerName
+import uk.gov.hmrc.common.message.model.{ AlertDetails, Details, EmailAlert, ExternalRef, Message, RenderUrl, SystemTimeSource, TaxpayerName }
+import uk.gov.hmrc.domain.SaUtr
 
 import java.time.{ Instant, LocalDate, LocalDateTime, LocalTime }
+import java.util.UUID
 
 object TestData {
   val TEST_ID = "test_id"
@@ -61,5 +63,35 @@ object TestData {
   val TEST_TAXPAYER: TaxpayerName = TaxpayerName(
     title = Some(TEST_TITLE),
     forename = Some(TEST_NAME)
+  )
+
+  val TEST_EXTERNAL_REF = ExternalRef("2342342341", "gmc")
+
+  val TEST_MESSAGE = Message(
+    id = new ObjectId,
+    externalRef = Some(TEST_EXTERNAL_REF),
+    recipient = MessageFixtures.createTaxEntity(SaUtr("1234567890")),
+    subject = "Your Tax Return",
+    body = Some(
+      Details(
+        Some("SA300"),
+        Some("print-suppression-notification"),
+        Some(TEST_LOCAL_DATE.minusDays(1).toString),
+        Some("C0123456781234568")
+      )
+    ),
+    contentParameters = None,
+    validFrom = TEST_LOCAL_DATE,
+    alertFrom = Some(TEST_LOCAL_DATE),
+    alertDetails = AlertDetails("templateId", None, Map()),
+    alerts = Some(
+      EmailAlert(emailAddress = Some(s"${UUID.randomUUID}@test.com"), Instant.now(), true, None)
+    ),
+    lastUpdated = Some(SystemTimeSource.now()),
+    hash = "someHashValue",
+    statutory = false,
+    renderUrl = RenderUrl("service", "relUrl"),
+    sourceData = Some("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9"),
+    emailAlertEventUrl = None
   )
 }

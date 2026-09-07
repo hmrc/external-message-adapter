@@ -1,0 +1,158 @@
+/*
+ * Copyright 2026 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package uk.gov.hmrc.externalmessageadapter
+
+import com.typesafe.config.ConfigFactory
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.test.{ FakeHeaders, FakeRequest }
+import play.api.test.Helpers.{ NO_CONTENT, POST, route, status }
+import play.api.{ Application, Configuration, inject }
+import uk.gov.hmrc.externalmessageadapter.model.{ EventBody, EventHubEvent }
+import uk.gov.hmrc.externalmessageadapter.util.TestData.{ TEST_EMAIL_ADDRESS_VALUE, TEST_EVENT, TEST_ID, TEST_LOCAL_DATE, TEST_LOCAL_DATE_TIME, TEST_MESSAGE, TEST_REASON }
+import uk.gov.hmrc.externalmessageadapter.util.{ SpecBase, WireMockSupportProvider }
+import uk.gov.hmrc.externalmessageadapter.validators.MessagesUtil
+import uk.gov.hmrc.http.{ Authorization, HeaderCarrier }
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import org.mockito.Mockito.when
+import org.mockito.ArgumentMatchers.any
+import play.api.libs.json.Json
+import play.api.mvc.Result
+import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
+import play.api.test.*
+import play.api.test.Helpers.*
+import uk.gov.hmrc.common.message.model.{ Details, Message }
+import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
+
+import scala.concurrent.{ ExecutionContext, Future }
+
+class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite with WireMockSupportProvider {
+
+  "processEventHubEvents (/message-process-eventhub-events)" must {
+
+    "process the event successfully" when {
+
+      "event is BounceEvent and Message formId is CH(A)1700 and paper notification" +
+        " is to be send over HIP" in new TestCaseWithHipEnabled {
+          import EventHubEvent.formats
+
+          val request = FakeRequest(
+            POST,
+            "/message-process-eventhub-events",
+            FakeHeaders(),
+            Json.toJson(eventHubEvent)
+          )
+
+          when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
+          when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(MSG)))
+
+          val result: Future[Result] = route(application, request).get
+          status(result) mustBe NO_CONTENT
+        }
+
+      "event is BounceEvent and paper notification is to be send over EIS " in new TestCaseWithHipDisabled {}
+    }
+  }
+
+  override def config: Configuration = Configuration(
+    ConfigFactory.parseString(
+      s"""
+         |microservice {
+         |  services {
+         |  eis {
+         |            host = $wireMockHost
+         |            port = $wireMockPort
+         |        }
+         |  hip {
+         |            host = $wireMockHost
+         |            port = $wireMockPort
+         |        }
+         |  }
+         |}
+         |""".stripMargin
+    )
+  )
+
+  trait TestCaseWithHipDisabled {
+
+    val eisEndPoint = "/sa-forms/suppression/send-letter"
+    val authToken = "authToken23432"
+
+    implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
+    implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+
+    val application: Application = new GuiceApplicationBuilder()
+      .configure(
+        "play.filters.csp.nonce.enabled"        -> false,
+        "auditing.enabled"                      -> "false",
+        "microservice.metrics.graphite.enabled" -> "false",
+        "metrics.enabled"                       -> "false"
+      )
+      .configure(config)
+      .build()
+  }
+
+  trait TestCaseWithHipEnabled {
+
+    val hipEndPoint = "/emailBounceback"
+    val eisEndPoint = "/sa-forms/suppression/send-letter"
+    val authToken = "authToken23432"
+
+    val eventBody: EventBody =
+      EventBody(
+        event = "permanentbounce",
+        emailAddress = TEST_EMAIL_ADDRESS_VALUE,
+        detected = TEST_LOCAL_DATE_TIME,
+        code = 2,
+        reason = TEST_REASON,
+        tags = Map("messageId" -> "6a5645a2c0510b9d8d982ebd")
+      )
+
+    val eventHubEvent: EventHubEvent =
+      EventHubEvent(eventId = TEST_ID, timestamp = TEST_LOCAL_DATE_TIME, event = eventBody)
+
+    val details = Details(
+      Some("CH(A)1700"),
+      Some("print-suppression-notification"),
+      Some(TEST_LOCAL_DATE.minusDays(1).toString),
+      Some("C0123456781234568")
+    )
+
+    val MSG: Message = TEST_MESSAGE.copy(body = Some(details))
+
+    implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
+    implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+
+    val mockMessagesUtil: MessagesUtil = mock[MessagesUtil]
+    val mockMsgRepository: MongoMessageRepository = mock[MongoMessageRepository]
+
+    val application: Application = new GuiceApplicationBuilder()
+      .overrides(
+        inject.bind[MessagesUtil].toInstance(mockMessagesUtil),
+        inject.bind[MongoMessageRepository].toInstance(mockMsgRepository)
+      )
+      .configure(
+        "play.filters.csp.nonce.enabled"                      -> false,
+        "auditing.enabled"                                    -> "false",
+        "microservice.metrics.graphite.enabled"               -> "false",
+        "metrics.enabled"                                     -> "false",
+        "microservice.services.hip.email-bounce-back.enabled" -> true
+      )
+      .configure(config)
+      .build()
+  }
+}
