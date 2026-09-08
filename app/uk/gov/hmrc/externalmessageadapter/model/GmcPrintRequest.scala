@@ -71,8 +71,8 @@ case class GmcPrintResponseBody(failures: List[GmcPrintFailureResponse]) {
 object GmcPrintResponseBody {
   implicit val failureFormat: OFormat[GmcPrintFailureResponse] = Json.format[GmcPrintFailureResponse]
   implicit val format: OFormat[GmcPrintResponseBody] = Json.format[GmcPrintResponseBody]
-
 }
+
 case class GmcPrintFailureResponse(reason: String, code: Option[String])
 
 object GmcPrintResponse {
@@ -84,5 +84,10 @@ object GmcPrintResponse {
     GmcPrintResponse(status, UNKNOWN_EIS_ERROR)
 
   def unknownGmcPrintResponseFromHip(status: Int): GmcPrintResponse = GmcPrintResponse(status, UNKNOWN_HIP_ERROR)
+}
 
+case class EmailBounce4xxResponse(message: String)
+
+object EmailBounce4xxResponse {
+  implicit val format: OFormat[EmailBounce4xxResponse] = Json.format[EmailBounce4xxResponse]
 }

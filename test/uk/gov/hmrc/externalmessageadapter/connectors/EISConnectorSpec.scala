@@ -305,15 +305,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       }
 
       "request is sent to hip endpoint and upstream sends UNAUTHORIZED response" in new TestCaseWithHipEnabled {
-        val expectedResponse: String =
-          """{
-            |    "failures": [
-            |      {
-            |        "type": "unauthorized",
-            |        "reason": "Authentication information is missing or invalid"
-            |      }
-            |    ]
-            |}""".stripMargin
+        val expectedResponse: String = """{"message":"Authentication information is missing or invalid"}""".stripMargin
 
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
@@ -340,15 +332,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       }
 
       "request is sent to hip endpoint and upstream sends FORBIDDEN response" in new TestCaseWithHipEnabled {
-        val expectedResponse: String =
-          """{
-            |    "failures": [
-            |      {
-            |        "type": "Forbidden",
-            |        "reason": "invalid credentials were used"
-            |      }
-            |    ]
-            |}""".stripMargin
+        val expectedResponse: String = """{"message":"Forbidden"}""".stripMargin
 
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
@@ -372,19 +356,11 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
         val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
-        result.futureValue mustBe Some(GmcPrintResponse(FORBIDDEN, "invalid credentials were used"))
+        result.futureValue mustBe Some(GmcPrintResponse(FORBIDDEN, "Forbidden"))
       }
 
       "request is sent to hip endpoint and upstream sends REQUEST_TIMEOUT response" in new TestCaseWithHipEnabled {
-        val expectedResponse: String =
-          """{
-            |    "failures": [
-            |      {
-            |        "type": "requestTimeout",
-            |        "reason": "request took longer than expected and was timed out"
-            |      }
-            |    ]
-            |}""".stripMargin
+        val expectedResponse: String = """{"message":"Timeout"}""".stripMargin
 
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
@@ -409,20 +385,12 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
-          GmcPrintResponse(REQUEST_TIMEOUT, "request took longer than expected and was timed out")
+          GmcPrintResponse(REQUEST_TIMEOUT, "Timeout")
         )
       }
 
       "request is sent to hip endpoint and upstream sends NOT_FOUND response" in new TestCaseWithHipEnabled {
-        val expectedResponse: String =
-          """{
-            |    "failures": [
-            |      {
-            |        "type": "notFound",
-            |        "reason": "request not found"
-            |      }
-            |    ]
-            |}""".stripMargin
+        val expectedResponse: String = """{"message":"Not found"}""".stripMargin
 
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
@@ -447,7 +415,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
-          GmcPrintResponse(NOT_FOUND, "request not found")
+          GmcPrintResponse(NOT_FOUND, "Not found")
         )
       }
 

@@ -173,6 +173,24 @@ class GmcPrintRequestSpec extends PlaySpec {
     }
   }
 
+  "EmailBounce4xxResponse" must {
+    import EmailBounce4xxResponse.format
+
+    "read the json correctly" in new Setup {
+      Json.parse(emailBounce4xxResponseJsonString).as[EmailBounce4xxResponse] mustBe emailBounce4xxResponseOb
+    }
+
+    "throw exception for invalid json" in new Setup {
+      intercept[JsResultException] {
+        Json.parse(emailBounce4xxResponseInvalidJsonString).as[EmailBounce4xxResponse]
+      }
+    }
+
+    "write the object correctly" in new Setup {
+      Json.toJson(emailBounce4xxResponseOb) mustBe Json.parse(emailBounce4xxResponseJsonString)
+    }
+  }
+
   trait Setup {
     val gmcPrintRequest: GmcPrintRequest =
       GmcPrintRequest(
@@ -227,5 +245,10 @@ class GmcPrintRequestSpec extends PlaySpec {
 
     val gmcPrintResponseBodyInvalidJsonString: String =
       """{"failures":[{"code":"test_code"}]}""".stripMargin
+
+    val emailBounce4xxResponseJsonString = """{"message":"Unauthorized"}"""
+    val emailBounce4xxResponseInvalidJsonString = """{}"""
+
+    val emailBounce4xxResponseOb = EmailBounce4xxResponse("Unauthorized")
   }
 }

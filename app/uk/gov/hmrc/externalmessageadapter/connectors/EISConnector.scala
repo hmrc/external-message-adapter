@@ -20,8 +20,9 @@ import play.api.Logger
 import play.api.http.HeaderNames.{ ACCEPT, AUTHORIZATION, CONTENT_TYPE, DATE }
 import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.http.{ MimeTypes, Status }
+import play.api.http.Status.{ BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK, REQUEST_TIMEOUT, SERVICE_UNAVAILABLE, UNAUTHORIZED }
 import play.api.libs.json.Json
-import uk.gov.hmrc.externalmessageadapter.model.{ GmcPrintRequest, GmcPrintResponse, GmcPrintResponseBody }
+import uk.gov.hmrc.externalmessageadapter.model.{ EmailBounce4xxResponse, GmcPrintRequest, GmcPrintResponse, GmcPrintResponseBody }
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, StringContextOps }
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
@@ -76,11 +77,11 @@ class EISConnector @Inject() (
         )
         .execute[HttpResponse]
         .map {
-          case resp if resp.status == Status.OK =>
+          case resp if resp.status == OK =>
             val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
             logger.warn(s">>>GmcPrintRequest OK, CorrelationId - $correlationId" + s)
             None
-          case resp if resp.status == Status.BAD_REQUEST =>
+          case resp if resp.status == BAD_REQUEST =>
             val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
             logger.debug(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId" + s + resp.body)
             resp.json
@@ -131,7 +132,7 @@ class EISConnector @Inject() (
 
           None
 
-        case resp if resp.status == Status.BAD_REQUEST =>
+        case resp if resp.status == BAD_REQUEST =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
           logger.warn(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}")
 
@@ -140,14 +141,23 @@ class EISConnector @Inject() (
             .map(_.toGmcPrintHIPResponse(resp.status))
             .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
 
-        case resp =>
+        case resp if isResponseCode5xx(resp.status) =>
+          val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
+          logger.warn(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}")
+
+          resp.json
+            .asOpt[GmcPrintResponseBody]
+            .map(_.toGmcPrintHIPResponse(resp.status))
+            .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
+
+        case resp if isResponseCode4xx(resp.status) =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
           logger.warn(
             s">>>GmcPrintRequest response code ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
           resp.json
-            .asOpt[GmcPrintResponseBody]
-            .map(_.toGmcPrintHIPResponse(resp.status))
+            .asOpt[EmailBounce4xxResponse]
+            .map(emailBounceResponse => GmcPrintResponse(resp.status, emailBounceResponse.message))
             .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
       }
       .recover { case _ =>
@@ -155,6 +165,12 @@ class EISConnector @Inject() (
         Option(GmcPrintResponse.unknownGmcPrintResponseFromHip(NOT_IMPLEMENTED))
       }
   }
+
+  private def isResponseCode4xx(responseStatus: Int): Boolean =
+    List(UNAUTHORIZED, FORBIDDEN, NOT_FOUND, REQUEST_TIMEOUT).contains(responseStatus)
+
+  private def isResponseCode5xx(responseStatus: Int) =
+    responseStatus == INTERNAL_SERVER_ERROR || responseStatus == SERVICE_UNAVAILABLE
 }
 
 object CustomHeaders {
