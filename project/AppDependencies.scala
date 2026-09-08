@@ -15,10 +15,11 @@ object AppDependencies {
 
   lazy val compile: Seq[ModuleID] = Seq(
     caffeine,
-    "uk.gov.hmrc"    %% "bootstrap-backend-play-30" % bootstrapVersion,
-    "uk.gov.hmrc"    %% "dc-message-library"        % "1.31.0",
-    "net.codingwell" %% "scala-guice"               % guiceVersion,
-    "org.jsoup"       % "jsoup"                     % "1.15.4"
+    "uk.gov.hmrc"               %% "bootstrap-backend-play-30" % bootstrapVersion,
+    "uk.gov.hmrc"               %% "dc-message-library"        % "1.31.0",
+    "net.codingwell"            %% "scala-guice"               % guiceVersion,
+    "org.jsoup"                  % "jsoup"                     % "1.15.4",
+    "com.github.java-json-tools" % "json-schema-validator"     % "2.2.14"
   )
 
   lazy val test: Seq[ModuleID] = Seq(

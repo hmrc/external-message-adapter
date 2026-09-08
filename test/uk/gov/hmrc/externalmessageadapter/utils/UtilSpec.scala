@@ -27,6 +27,7 @@ class UtilSpec extends SpecBase {
       EMPTY_STRING mustBe ""
       COMMA_WITH_SPACE mustBe ", "
       COLON mustBe ":"
+      THREE_COLONS mustBe ":::"
     }
   }
 

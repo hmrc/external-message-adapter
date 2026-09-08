@@ -1,0 +1,12 @@
+{
+  "externalRefId": "9d7f1d67-5d54-4b00-9d6c-3a8f7fb2e1c4",
+  "formId": "SA300",
+  "properties": [
+    {
+      "name": "printedVariant",
+      "value": "true"
+    }
+  ],
+  "reason": "EMAIL_BOUNCE",
+  "sourceData": "SGVsbG8gd29ybGQ="
+}

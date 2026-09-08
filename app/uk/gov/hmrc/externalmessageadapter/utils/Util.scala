@@ -26,6 +26,7 @@ object Util {
   val EMPTY_STRING = ""
   val COMMA_WITH_SPACE = ", "
   val COLON = ":"
+  val THREE_COLONS = ":::"
 
   def uuidOfLength31: String =
     UUID
