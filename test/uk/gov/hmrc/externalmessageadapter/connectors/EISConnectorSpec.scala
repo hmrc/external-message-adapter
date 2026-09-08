@@ -216,7 +216,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
-              .withHeader(AUTHORIZATION, equalTo("Bearer AbCdEf123456"))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
               .willReturn(ok.withHeader("correlationid", "e470d65899f74292a4a1ed12c72f1337"))
           )
 
@@ -285,6 +285,9 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
             .willReturn(jsonResponse(expectedResponse, BAD_REQUEST))
         )
 
@@ -353,6 +356,9 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
             .willReturn(jsonResponse(expectedResponse, FORBIDDEN))
         )
 
@@ -386,6 +392,9 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
             .willReturn(jsonResponse(expectedResponse, REQUEST_TIMEOUT))
         )
 
@@ -421,6 +430,9 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
             .willReturn(jsonResponse(expectedResponse, NOT_FOUND))
         )
 
@@ -456,6 +468,9 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
             .willReturn(jsonResponse(expectedResponse, INTERNAL_SERVER_ERROR))
         )
 
@@ -491,6 +506,9 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
             .willReturn(jsonResponse(expectedResponse, SERVICE_UNAVAILABLE))
         )
 
@@ -526,6 +544,9 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
             .willReturn(noContent())
         )
 
@@ -568,7 +589,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
   trait TestCaseWithHipDisabled {
 
     val eisEndPoint = "/sa-forms/suppression/send-letter"
-    val authToken = "authToken23432"
+    val authToken = "Bearer AbCdEf123456"
 
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
     implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
@@ -591,7 +612,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
     val hipEndPoint = "/emailBounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"
-    val authToken = "authToken23432"
+    val authToken = "Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
 
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
     implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.externalmessageadapter.utils
 
-import java.util.UUID
+import java.util.{ Base64, UUID }
 
 object Util {
 
@@ -25,6 +25,7 @@ object Util {
   val HYPHEN = "-"
   val EMPTY_STRING = ""
   val COMMA_WITH_SPACE = ", "
+  val COLON = ":"
 
   def uuidOfLength31: String =
     UUID
@@ -36,4 +37,7 @@ object Util {
   // Is being used for API-5951
   def uuidOfLength32: String =
     UUID.randomUUID().toString.replace(HYPHEN, EMPTY_STRING).substring(0, LENGTH_32)
+
+  def encodeStringToBase64(inputString: String): String =
+    Base64.getEncoder.encodeToString(inputString.getBytes("UTF-8"))
 }

@@ -27,7 +27,7 @@ import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, StringContextOps }
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import play.api.libs.ws.writeableOf_JsValue
-import uk.gov.hmrc.externalmessageadapter.utils.Util.{ COMMA_WITH_SPACE, EMPTY_STRING, uuidOfLength32 }
+import uk.gov.hmrc.externalmessageadapter.utils.Util.{ COLON, COMMA_WITH_SPACE, EMPTY_STRING, encodeStringToBase64, uuidOfLength32 }
 
 import java.net.URI
 import java.time.format.DateTimeFormatter
@@ -107,12 +107,13 @@ class EISConnector @Inject() (
     servicesConfig: ServicesConfig
   )(implicit hc: HeaderCarrier) = {
     val hipBaseUrl = servicesConfig.baseUrl("hip")
-    val hipBearerToken = servicesConfig.getString("microservice.services.hip.email-bounce-back.bearer-token")
+    val hipClientId = servicesConfig.getString("microservice.services.hip.email-bounce-back.client-id")
+    val hipClientSecret = servicesConfig.getString("microservice.services.hip.email-bounce-back.client-secret")
     val hipEndpoint = servicesConfig.getString("microservice.services.hip.email-bounce-back.endPoint")
-    val hipEnvironment = servicesConfig.getString("microservice.services.hip.environment")
 
     val hipEndPointUrl = s"$hipBaseUrl$hipEndpoint"
     val correlationId = uuidOfLength32
+    val authToken = encodeStringToBase64(s"$hipClientId$COLON$hipClientSecret")
 
     httpClient
       .post(url"$hipEndPointUrl")
@@ -120,10 +121,8 @@ class EISConnector @Inject() (
       .setHeader(
         (CONTENT_TYPE, MimeTypes.JSON),
         (ACCEPT, MimeTypes.JSON),
-        (AUTHORIZATION, s"Bearer $hipBearerToken"),
-        (DATE, DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneOffset.UTC))),
-        (CustomHeaders.CorrelationId, correlationId),
-        (CustomHeaders.Environment, hipEnvironment)
+        (AUTHORIZATION, s"Basic $authToken"),
+        (CustomHeaders.CorrelationIdHIP, correlationId)
       )
       .execute[HttpResponse]
       .map {
@@ -161,6 +160,7 @@ class EISConnector @Inject() (
 
 object CustomHeaders {
   val CorrelationId = "X-Correlation-ID"
+  val CorrelationIdHIP = "correlationid"
   val ForwardedHost = "X-Forwarded-Host"
   val EisSenderClassification = "X-Eis-Sender-Classification"
   val Environment = "environment"

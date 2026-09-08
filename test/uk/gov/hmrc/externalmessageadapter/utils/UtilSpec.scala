@@ -26,6 +26,7 @@ class UtilSpec extends SpecBase {
       HYPHEN mustBe "-"
       EMPTY_STRING mustBe ""
       COMMA_WITH_SPACE mustBe ", "
+      COLON mustBe ":"
     }
   }
 
@@ -41,6 +42,12 @@ class UtilSpec extends SpecBase {
     "return the UUID string of length 32 and without any hyphen" in {
       uuidOfLength32.length mustBe 32
       assert(!uuidOfLength32.contains(HYPHEN))
+    }
+  }
+
+  "encodeStringToBase64" should {
+    "return the encoded value" in {
+      encodeStringToBase64("AbCdEf123456:AbCdEf123897") mustBe "QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
     }
   }
 }
