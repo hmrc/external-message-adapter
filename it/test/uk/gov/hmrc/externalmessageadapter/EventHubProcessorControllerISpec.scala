@@ -121,6 +121,105 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
         status(result) mustBe NO_CONTENT
       }
     }
+
+    "return the correct error code" when {
+      "event is BounceEvent and Message formId is CH(A)1700 and paper notification" +
+        " is to be send over HIP but upstream response is of INTERNAL_SERVER_ERROR" in new TestCaseWithHipEnabled {
+
+          import EventHubEvent.formats
+
+          val request = FakeRequest(
+            POST,
+            "/message-process-eventhub-events",
+            FakeHeaders(),
+            Json.toJson(eventHubEvent)
+          )
+
+          val expectedResponse: String =
+            """{
+              |    "failures": [
+              |      {
+              |        "type": "INTERNAL_SERVER_ERROR",
+              |        "reason": "server error occurred"
+              |      }
+              |    ]
+              |}""".stripMargin
+
+          when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
+          when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(MSG)))
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(
+                matchingJsonPath(
+                  "$.sourceData",
+                  equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+                )
+              )
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(jsonResponse(expectedResponse, INTERNAL_SERVER_ERROR))
+          )
+
+          when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
+
+          val result: Future[Result] = route(application, request).get
+          status(result) mustBe INTERNAL_SERVER_ERROR
+        }
+
+      "event is BounceEvent and paper notification is to be send over EIS" +
+        " but upstream response is of INTERNAL_SERVER_ERROR" in new TestCaseWithHipDisabled {
+
+          import EventHubEvent.formats
+
+          val request = FakeRequest(
+            POST,
+            "/message-process-eventhub-events",
+            FakeHeaders(),
+            Json.toJson(eventHubEvent)
+          )
+
+          val expectedResponse: String =
+            """{
+              |    "failures": [
+              |      {
+              |        "type": "INTERNAL_SERVER_ERROR",
+              |        "reason": "server error occurred"
+              |      }
+              |    ]
+              |}""".stripMargin
+
+          when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
+          when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(TEST_MESSAGE)))
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(
+                matchingJsonPath(
+                  "$.sourceData",
+                  equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+                )
+              )
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("SA300")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Bearer AbCdEf123456"))
+              .willReturn(jsonResponse(expectedResponse, INTERNAL_SERVER_ERROR))
+          )
+
+          when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
+
+          val result: Future[Result] = route(application, request).get
+          status(result) mustBe INTERNAL_SERVER_ERROR
+        }
+    }
   }
 
   override def config: Configuration = Configuration(

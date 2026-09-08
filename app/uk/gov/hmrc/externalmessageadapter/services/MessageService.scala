@@ -64,6 +64,7 @@ class MessageService @Inject() (
               NoContent
             case Some(gmcResponse) =>
               logger debug s"EventHub Processor: Failure Sending paper notification :$gmcResponse"
+              println("========= inside Some(gmcResponse) =========" + gmcResponse.status)
               statusHelper(gmcResponse.status, gmcResponse.message)
           }
           .recover {
@@ -95,6 +96,9 @@ class MessageService @Inject() (
     statusCode match {
       case BAD_REQUEST =>
         logger.info(s"EventHub Processor: Received a 400 from eis connector with the error message: $message")
+        println(
+          "========= inside statusHelper and code is ===========" + statusCode + "======= message is :::::::" + message
+        )
         errorResponseResult(message, OK, showErrorID = true)
       case INTERNAL_SERVER_ERROR => errorResponseResult(message, INTERNAL_SERVER_ERROR, showErrorID = true)
       case SERVICE_UNAVAILABLE   => errorResponseResult(message, INTERNAL_SERVER_ERROR, showErrorID = true)
