@@ -46,10 +46,6 @@ class EISConnector @Inject() (
 
   val logger: Logger = Logger(this.getClass)
 
-  private val eisBaseUrl = servicesConfig.baseUrl("eis")
-  private val eisBearerToken = servicesConfig.getString("microservice.services.eis.bearer-token")
-  private val eisEndpoint = servicesConfig.getString("microservice.services.eis.endpoint")
-  private val eisEnvironment = servicesConfig.getString("microservice.services.eis.environment")
   private val isHipProcessingEnabled: Boolean = servicesConfig.getConfBool("hip.email-bounce-back.enabled", false)
 
   def post(gmcPrintRequest: GmcPrintRequest, correlationId: String): Future[Option[GmcPrintResponse]] = {
@@ -59,53 +55,65 @@ class EISConnector @Inject() (
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
+    if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(EMPTY_STRING)) && isHipProcessingEnabled) {
+      processRequestOverHIP(gmcPrintRequest)
+    } else {
+      processRequestOverEIS(gmcPrintRequest, correlationId)
+    }
+  }
+
+  private def processRequestOverEIS(gmcPrintRequest: GmcPrintRequest, correlationId: String)(implicit
+    hc: HeaderCarrier
+  ) = {
+    val eisBaseUrl = servicesConfig.baseUrl("eis")
+    val eisBearerToken = servicesConfig.getString("microservice.services.eis.bearer-token")
+    val eisEndpoint = servicesConfig.getString("microservice.services.eis.endpoint")
+    val eisEnvironment = servicesConfig.getString("microservice.services.eis.environment")
+
     val eisEndPointUrl = s"$eisBaseUrl$eisEndpoint"
 
-    if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(EMPTY_STRING)) && isHipProcessingEnabled) {
-      processRequestOverHIP(gmcPrintRequest, servicesConfig)
-    } else {
-      httpClient
-        .post(url"$eisEndPointUrl")
-        .withBody(Json.toJson(gmcPrintRequest.copy(externalRefId = None)))
-        .setHeader(
-          (CONTENT_TYPE, MimeTypes.JSON),
-          (ACCEPT, MimeTypes.JSON),
-          (AUTHORIZATION, s"Bearer $eisBearerToken"),
-          (DATE, DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneOffset.UTC))),
-          (CustomHeaders.CorrelationId, correlationId),
-          (CustomHeaders.Environment, eisEnvironment)
-        )
-        .execute[HttpResponse]
-        .map {
-          case resp if resp.status == OK =>
-            val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
-            logger.warn(s">>>GmcPrintRequest OK, CorrelationId - $correlationId" + s)
-            None
-          case resp if resp.status == BAD_REQUEST =>
-            val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
-            logger.debug(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId" + s + resp.body)
-            resp.json
-              .asOpt[GmcPrintResponseBody]
-              .map(_.toGmcPrintResponse(resp.status))
-              .orElse(Some(GmcPrintResponse.unknownGmcPrintResponse(resp.status)))
-          case resp =>
-            val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
-            logger.debug(s">>>GmcPrintRequest OTHER, CorrelationId - $correlationId" + s + resp.body)
-            resp.json
-              .asOpt[GmcPrintResponseBody]
-              .map(_.toGmcPrintResponse(resp.status))
-              .orElse(Some(GmcPrintResponse.unknownGmcPrintResponse(resp.status)))
-        }
-    }
+    httpClient
+      .post(url"$eisEndPointUrl")
+      .withBody(Json.toJson(gmcPrintRequest.copy(externalRefId = None)))
+      .setHeader(
+        (CONTENT_TYPE, MimeTypes.JSON),
+        (ACCEPT, MimeTypes.JSON),
+        (AUTHORIZATION, s"Bearer $eisBearerToken"),
+        (DATE, DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneOffset.UTC))),
+        (CustomHeaders.CorrelationId, correlationId),
+        (CustomHeaders.Environment, eisEnvironment)
+      )
+      .execute[HttpResponse]
+      .map {
+        case resp if resp.status == OK =>
+          val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
+          logger.warn(s">>>GmcPrintRequest OK, CorrelationId - $correlationId" + s)
+          None
+
+        case resp if resp.status == BAD_REQUEST =>
+          val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
+          logger.debug(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId" + s + resp.body)
+          resp.json
+            .asOpt[GmcPrintResponseBody]
+            .map(_.toGmcPrintResponse(resp.status))
+            .orElse(Some(GmcPrintResponse.unknownGmcPrintResponse(resp.status)))
+
+        case resp =>
+          val s: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
+          logger.debug(s">>>GmcPrintRequest OTHER, CorrelationId - $correlationId" + s + resp.body)
+          resp.json
+            .asOpt[GmcPrintResponseBody]
+            .map(_.toGmcPrintResponse(resp.status))
+            .orElse(Some(GmcPrintResponse.unknownGmcPrintResponse(resp.status)))
+      }
   }
 
   private def isFormIdEligibleToBeProcessedByHIP(formId: String): Boolean =
     bouncebackFormIds.contains(formId.toUpperCase)
 
   private def processRequestOverHIP(
-    gmcPrintRequest: GmcPrintRequest,
-    servicesConfig: ServicesConfig
-  )(implicit hc: HeaderCarrier) = {
+    gmcPrintRequest: GmcPrintRequest
+  )(implicit hc: HeaderCarrier): Future[Option[GmcPrintResponse]] = {
     val hipBaseUrl = servicesConfig.baseUrl("hip")
     val hipClientId = servicesConfig.getString("microservice.services.hip.email-bounce-back.client-id")
     val hipClientSecret = servicesConfig.getString("microservice.services.hip.email-bounce-back.client-secret")
