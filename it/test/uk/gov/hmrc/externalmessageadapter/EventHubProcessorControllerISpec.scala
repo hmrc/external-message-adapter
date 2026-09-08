@@ -23,11 +23,10 @@ import play.api.test.{ FakeHeaders, FakeRequest }
 import play.api.test.Helpers.{ NO_CONTENT, POST, route, status }
 import play.api.{ Application, Configuration, inject }
 import uk.gov.hmrc.externalmessageadapter.model.{ EventBody, EventHubEvent }
-import uk.gov.hmrc.externalmessageadapter.util.TestData.{ TEST_EMAIL_ADDRESS_VALUE, TEST_EVENT, TEST_ID, TEST_LOCAL_DATE, TEST_LOCAL_DATE_TIME, TEST_MESSAGE, TEST_REASON }
+import uk.gov.hmrc.externalmessageadapter.util.TestData.{ TEST_EMAIL_ADDRESS_VALUE, TEST_ID, TEST_LOCAL_DATE, TEST_LOCAL_DATE_TIME, TEST_MESSAGE, TEST_REASON }
 import uk.gov.hmrc.externalmessageadapter.util.{ SpecBase, WireMockSupportProvider }
 import uk.gov.hmrc.externalmessageadapter.validators.MessagesUtil
 import uk.gov.hmrc.http.{ Authorization, HeaderCarrier }
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import org.mockito.Mockito.when
 import org.mockito.ArgumentMatchers.any
 import play.api.libs.json.Json
@@ -37,6 +36,7 @@ import play.api.test.*
 import play.api.test.Helpers.*
 import uk.gov.hmrc.common.message.model.{ Details, Message }
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
+import com.github.tomakehurst.wiremock.client.WireMock.*
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -60,11 +60,66 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
           when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
           when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(MSG)))
 
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(
+                matchingJsonPath(
+                  "$.sourceData",
+                  equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+                )
+              )
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(ok.withHeader("correlationid", "e470d65899f74292a4a1ed12c72f1337"))
+          )
+
+          when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
+
           val result: Future[Result] = route(application, request).get
           status(result) mustBe NO_CONTENT
         }
 
-      "event is BounceEvent and paper notification is to be send over EIS " in new TestCaseWithHipDisabled {}
+      "event is BounceEvent and paper notification is to be send over EIS " in new TestCaseWithHipDisabled {
+
+        import EventHubEvent.formats
+
+        val request = FakeRequest(
+          POST,
+          "/message-process-eventhub-events",
+          FakeHeaders(),
+          Json.toJson(eventHubEvent)
+        )
+
+        when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
+        when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(TEST_MESSAGE)))
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(eisEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(
+              matchingJsonPath(
+                "$.sourceData",
+                equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+              )
+            )
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("SA300")))
+            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(AUTHORIZATION, equalTo("Bearer AbCdEf123456"))
+            .willReturn(ok.withHeader("correlationid", "e470d65899f74292a4a1ed12c72f1337"))
+        )
+
+        when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
+
+        val result: Future[Result] = route(application, request).get
+        status(result) mustBe NO_CONTENT
+      }
     }
   }
 
@@ -88,19 +143,39 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
   )
 
   trait TestCaseWithHipDisabled {
-
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "authToken23432"
+
+    val eventBody: EventBody =
+      EventBody(
+        event = "permanentbounce",
+        emailAddress = TEST_EMAIL_ADDRESS_VALUE,
+        detected = TEST_LOCAL_DATE_TIME,
+        code = 2,
+        reason = TEST_REASON,
+        tags = Map("messageId" -> "6a5645a2c0510b9d8d982ebd")
+      )
+
+    val eventHubEvent: EventHubEvent =
+      EventHubEvent(eventId = TEST_ID, timestamp = TEST_LOCAL_DATE_TIME, event = eventBody)
 
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
     implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
+    val mockMessagesUtil: MessagesUtil = mock[MessagesUtil]
+    val mockMsgRepository: MongoMessageRepository = mock[MongoMessageRepository]
+
     val application: Application = new GuiceApplicationBuilder()
+      .overrides(
+        inject.bind[MessagesUtil].toInstance(mockMessagesUtil),
+        inject.bind[MongoMessageRepository].toInstance(mockMsgRepository)
+      )
       .configure(
         "play.filters.csp.nonce.enabled"        -> false,
         "auditing.enabled"                      -> "false",
         "microservice.metrics.graphite.enabled" -> "false",
-        "metrics.enabled"                       -> "false"
+        "metrics.enabled"                       -> "false",
+        "handle.bounce.eventhub"                -> true
       )
       .configure(config)
       .build()
@@ -150,7 +225,8 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
         "auditing.enabled"                                    -> "false",
         "microservice.metrics.graphite.enabled"               -> "false",
         "metrics.enabled"                                     -> "false",
-        "microservice.services.hip.email-bounce-back.enabled" -> true
+        "microservice.services.hip.email-bounce-back.enabled" -> true,
+        "handle.bounce.eventhub"                              -> true
       )
       .configure(config)
       .build()

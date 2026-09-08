@@ -50,7 +50,6 @@ class PaperNotificationService @Inject() (
     hc: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Option[GmcPrintResponse]] = {
-
     def detailsMap(req: GmcPrintRequest, id: String): Map[String, String] =
       Map("correlationId" -> id, "body" -> Json.toJson(req).toString())
 
@@ -64,9 +63,9 @@ class PaperNotificationService @Inject() (
           )
           None
         }
+
       case Some(request) =>
         val correlationId = Util.uuidOfLength31
-
         (for {
           created <- eisConnector.post(request, correlationId)
           _ = logger warn s"Eventhub Processor $created"
@@ -78,6 +77,7 @@ class PaperNotificationService @Inject() (
             auditMessage(message, eventType = EventTypes.Failed, additionalDetails = detailsMap(request, correlationId))
             Future.failed(e)
           }
+
       case _ =>
         logger.warn(
           s"No GmcPrintRequest to send for message ${message.externalRef.map(_.id).getOrElse(message.id.toString)}"
@@ -148,5 +148,4 @@ class PaperNotificationService @Inject() (
 
   lazy val handleBounce: Boolean =
     configuration.getOptional[Boolean]("handle.bounce.eventhub").getOrElse(false)
-
 }

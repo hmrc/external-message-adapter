@@ -85,7 +85,7 @@ object TestData {
     alertFrom = Some(TEST_LOCAL_DATE),
     alertDetails = AlertDetails("templateId", None, Map()),
     alerts = Some(
-      EmailAlert(emailAddress = Some(s"${UUID.randomUUID}@test.com"), Instant.now(), true, None)
+      EmailAlert(emailAddress = Some("a@a.com"), Instant.now(), true, None)
     ),
     lastUpdated = Some(SystemTimeSource.now()),
     hash = "someHashValue",

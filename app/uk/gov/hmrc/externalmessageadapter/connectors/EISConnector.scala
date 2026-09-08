@@ -63,7 +63,6 @@ class EISConnector @Inject() (
     if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(EMPTY_STRING)) && isHipProcessingEnabled) {
       processRequestOverHIP(gmcPrintRequest, servicesConfig)
     } else {
-
       httpClient
         .post(url"$eisEndPointUrl")
         .withBody(Json.toJson(gmcPrintRequest.copy(externalRefId = None)))
