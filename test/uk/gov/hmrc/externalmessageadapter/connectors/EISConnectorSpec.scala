@@ -271,12 +271,19 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       "request is sent to hip endpoint and upstream sends BAD_REQUEST" in new TestCaseWithHipEnabled {
         val expectedResponse: String =
           """{
+            |  "origin": "HIP",
+            |  "response": {
             |    "failures": [
             |      {
-            |        "type": "badRequest",
-            |        "reason": "source data is incorrect"
+            |        "type": "header.correlationid",
+            |        "reason": "The request parameter header.correlationid failed validation due to pattern mismatch."
+            |      },
+            |      {
+            |        "type": "body.schema.pattern",
+            |        "reason": "Path '/emailAddress' validation failed."
             |      }
             |    ]
+            |  }
             |}""".stripMargin
 
         wireMockServer.stubFor(
@@ -301,7 +308,12 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
         val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
-        result.futureValue mustBe Some(GmcPrintResponse(BAD_REQUEST, "source data is incorrect"))
+        result.futureValue mustBe Some(
+          GmcPrintResponse(
+            BAD_REQUEST,
+            "The request parameter header.correlationid failed validation due to pattern mismatch."
+          )
+        )
       }
 
       "request is sent to hip endpoint and upstream sends UNAUTHORIZED response" in new TestCaseWithHipEnabled {
@@ -422,12 +434,15 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       "request is sent to hip endpoint and upstream sends INTERNAL_SERVER_ERROR response" in new TestCaseWithHipEnabled {
         val expectedResponse: String =
           """{
+            |  "origin": "HIP",
+            |  "response": {
             |    "failures": [
             |      {
-            |        "type": "serverError",
-            |        "reason": "server error occurred due to network issue"
+            |        "type": "server_connection",
+            |        "reason": "server error occurred due to network congestion"
             |      }
             |    ]
+            |  }
             |}""".stripMargin
 
         wireMockServer.stubFor(
@@ -453,19 +468,22 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
-          GmcPrintResponse(INTERNAL_SERVER_ERROR, "server error occurred due to network issue")
+          GmcPrintResponse(INTERNAL_SERVER_ERROR, "server error occurred due to network congestion")
         )
       }
 
       "request is sent to hip endpoint and upstream sends SERVICE_UNAVAILABLE response" in new TestCaseWithHipEnabled {
         val expectedResponse: String =
           """{
+            |  "origin": "HIP",
+            |  "response": {
             |    "failures": [
             |      {
-            |        "type": "serverError",
-            |        "reason": "service is not available right now"
+            |        "type": "Service Unavailable",
+            |        "reason": "service is unavailable due to network layer is down"
             |      }
             |    ]
+            |  }
             |}""".stripMargin
 
         wireMockServer.stubFor(
@@ -491,7 +509,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
-          GmcPrintResponse(SERVICE_UNAVAILABLE, "service is not available right now")
+          GmcPrintResponse(SERVICE_UNAVAILABLE, "service is unavailable due to network layer is down")
         )
       }
 

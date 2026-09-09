@@ -137,12 +137,15 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
           val expectedResponse: String =
             """{
+              |  "origin": "HIP",
+              |  "response": {
               |    "failures": [
               |      {
-              |        "type": "INTERNAL_SERVER_ERROR",
-              |        "reason": "server error occurred"
+              |        "type": "Service Unavailable",
+              |        "reason": "service is unavailable due to network layer is down"
               |      }
               |    ]
+              |  }
               |}""".stripMargin
 
           when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))

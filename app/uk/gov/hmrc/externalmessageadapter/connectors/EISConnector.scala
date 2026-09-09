@@ -22,7 +22,7 @@ import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.http.{ MimeTypes, Status }
 import play.api.http.Status.{ BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK, REQUEST_TIMEOUT, SERVICE_UNAVAILABLE, UNAUTHORIZED }
 import play.api.libs.json.Json
-import uk.gov.hmrc.externalmessageadapter.model.{ EmailBounce4xxResponse, GmcPrintRequest, GmcPrintResponse, GmcPrintResponseBody }
+import uk.gov.hmrc.externalmessageadapter.model.{ EmailBounce4xxResponse, EmailBounceBackResponseBody, GmcPrintRequest, GmcPrintResponse, GmcPrintResponseBody }
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, StringContextOps }
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
@@ -145,8 +145,13 @@ class EISConnector @Inject() (
           logger.warn(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}")
 
           resp.json
-            .asOpt[GmcPrintResponseBody]
-            .map(_.toGmcPrintHIPResponse(resp.status))
+            .asOpt[EmailBounceBackResponseBody]
+            .map(
+              _.response
+                .fold(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status))(
+                  _.toGmcPrintHIPResponse(resp.status)
+                )
+            )
             .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
 
         case resp if isResponseCode5xx(resp.status) =>
@@ -154,8 +159,13 @@ class EISConnector @Inject() (
           logger.warn(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}")
 
           resp.json
-            .asOpt[GmcPrintResponseBody]
-            .map(_.toGmcPrintHIPResponse(resp.status))
+            .asOpt[EmailBounceBackResponseBody]
+            .map(
+              _.response
+                .fold(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status))(
+                  _.toGmcPrintHIPResponse(resp.status)
+                )
+            )
             .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
 
         case resp if isResponseCode4xx(resp.status) =>
