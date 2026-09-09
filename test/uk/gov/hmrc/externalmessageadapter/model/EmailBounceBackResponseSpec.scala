@@ -19,6 +19,8 @@ package uk.gov.hmrc.externalmessageadapter.model
 import play.api.libs.json.{ JsNumber, JsResultException, JsString, Json }
 import uk.gov.hmrc.externalmessageadapter.util.SpecBase
 import HIPOrigin.*
+import play.api.http.Status.{ BAD_REQUEST, SERVICE_UNAVAILABLE }
+import uk.gov.hmrc.externalmessageadapter.utils.Util.ORIGIN_HIP_ERROR_MSG_PREFIX
 
 class EmailBounceBackResponseSpec extends SpecBase {
 
@@ -95,6 +97,29 @@ class EmailBounceBackResponseSpec extends SpecBase {
 
     "write the object correctly" in new Setup {
       Json.toJson(emailBounceBackFailuresResOb) mustBe Json.parse(emailBounceBackFailuresResWithOnlyReasonJsonString)
+    }
+  }
+
+  "EmailBounceBackFailuresResponse.toGmcPrintHIPResponse" must {
+
+    "append the prefix Origin:::HIP when status is 400" in {
+      val failureMsg = "emailAddress is of incorrect format"
+      val failureMsgWithOriginHIPPrefix = s"$ORIGIN_HIP_ERROR_MSG_PREFIX $failureMsg"
+
+      val failureResponse = EmailBounceBackFailureResponse(failureType = Some("schema_validation"), reason = failureMsg)
+
+      EmailBounceBackFailuresResponse(failures = List(failureResponse)).toGmcPrintHIPResponse(BAD_REQUEST) mustBe
+        GmcPrintResponse(BAD_REQUEST, failureMsgWithOriginHIPPrefix)
+    }
+
+    "return the original error msg when status is other than 400" in {
+      val failureMsg = "emailAddress is of incorrect format"
+
+      val failureResponse = EmailBounceBackFailureResponse(failureType = Some("schema_validation"), reason = failureMsg)
+
+      EmailBounceBackFailuresResponse(failures = List(failureResponse))
+        .toGmcPrintHIPResponse(SERVICE_UNAVAILABLE) mustBe
+        GmcPrintResponse(SERVICE_UNAVAILABLE, failureMsg)
     }
   }
 

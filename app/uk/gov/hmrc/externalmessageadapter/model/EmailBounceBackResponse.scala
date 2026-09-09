@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.externalmessageadapter.model
 
+import play.api.http.Status.BAD_REQUEST
 import play.api.libs.json.{ Format, JsError, JsString, JsSuccess, Json, OFormat, Reads, Writes }
 import uk.gov.hmrc.externalmessageadapter.model.GmcPrintResponse.UNKNOWN_HIP_ERROR
+import uk.gov.hmrc.externalmessageadapter.utils.Util.ORIGIN_HIP_ERROR_MSG_PREFIX
 
 enum HIPOrigin {
   case HIP, HoD
@@ -48,7 +50,11 @@ object EmailBounceBackFailureResponse {
 case class EmailBounceBackFailuresResponse(failures: List[EmailBounceBackFailureResponse]) {
   def toGmcPrintHIPResponse(status: Int): GmcPrintResponse = {
     val message = failures.headOption.map(_.reason).getOrElse(UNKNOWN_HIP_ERROR)
-    GmcPrintResponse(status, message)
+    val messageWithOriginHIPPrefix: String = s"$ORIGIN_HIP_ERROR_MSG_PREFIX $message"
+
+    val msgForResponse = if (status == BAD_REQUEST) messageWithOriginHIPPrefix else message
+
+    GmcPrintResponse(status, msgForResponse)
   }
 }
 

@@ -311,7 +311,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         result.futureValue mustBe Some(
           GmcPrintResponse(
             BAD_REQUEST,
-            "The request parameter header.correlationid failed validation due to pattern mismatch."
+            "Origin:::HIP The request parameter header.correlationid failed validation due to pattern mismatch."
           )
         )
       }

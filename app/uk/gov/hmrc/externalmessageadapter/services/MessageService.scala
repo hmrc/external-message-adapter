@@ -18,11 +18,14 @@ package uk.gov.hmrc.externalmessageadapter.services
 
 import play.api.Logger
 import play.api.http.Status.*
+import play.api.libs.json.Json
 import play.api.mvc.Result
-import play.api.mvc.Results.NoContent
+import play.api.mvc.Results.{ BadRequest, NoContent }
+import uk.gov.hmrc.common.message.failuremodule.{ FailureResponse, FailureResponseService }
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
-import uk.gov.hmrc.common.message.failuremodule.FailureResponseService.errorResponseResult
+import uk.gov.hmrc.common.message.failuremodule.FailureResponseService.{ INVALID_REQUEST, errorResponseResult }
 import uk.gov.hmrc.common.message.model.{ Details, Message }
+import uk.gov.hmrc.externalmessageadapter.utils.Util.ORIGIN_HIP_ERROR_MSG_PREFIX
 import uk.gov.hmrc.http.UpstreamErrorResponse.Upstream4xxResponse
 import uk.gov.hmrc.http.UpstreamErrorResponse.Upstream5xxResponse
 import uk.gov.hmrc.http.HeaderCarrier
@@ -93,9 +96,13 @@ class MessageService @Inject() (
 
   private def statusHelper(statusCode: Int, message: String): Result =
     statusCode match {
+      case BAD_REQUEST if message.startsWith(ORIGIN_HIP_ERROR_MSG_PREFIX) =>
+        BadRequest(Json.toJson(FailureResponse(INVALID_REQUEST, message.stripPrefix(ORIGIN_HIP_ERROR_MSG_PREFIX).trim)))
+
       case BAD_REQUEST =>
         logger.info(s"EventHub Processor: Received a 400 from eis connector with the error message: $message")
         errorResponseResult(message, OK, showErrorID = true)
+
       case INTERNAL_SERVER_ERROR => errorResponseResult(message, INTERNAL_SERVER_ERROR, showErrorID = true)
       case SERVICE_UNAVAILABLE   => errorResponseResult(message, INTERNAL_SERVER_ERROR, showErrorID = true)
       case r                     => errorResponseResult(message, r, showErrorID = true)

@@ -27,6 +27,7 @@ object Util {
   val COMMA_WITH_SPACE = ", "
   val COLON = ":"
   val THREE_COLONS = ":::"
+  val ORIGIN_HIP_ERROR_MSG_PREFIX = "Origin:::HIP"
 
   def uuidOfLength31: String =
     UUID

@@ -197,6 +197,33 @@ class MessageServiceSpec
       status(result) must be(OK)
     }
 
+    "return BAD_REQUEST if the error message originated from HIP API response" in new TestCase {
+      private val messageForAuthorisedUtr: Message =
+        getMessageForAuthorisedUtr(messageId, TEST_SOURCE_DATA, Some(testTime), formId = "AtSV2")
+
+      val updatedDetails: Option[Details] = messageForAuthorisedUtr.body.map(body => body.copy(form = None))
+      val updatedMessage: Message = messageForAuthorisedUtr.copy(body = updatedDetails)
+
+      when(mockMessageRepository.findByExternalRefId(any[String]))
+        .thenReturn(Future.successful(Some(updatedMessage)))
+
+      when(mockPaperNotificationService.sendGmcPaperNotification(any, any, any)(any, any))
+        .thenReturn(
+          Future.failed(UpstreamErrorResponse("Origin:::HIP Path '/emailAddress' validation failed", BAD_REQUEST))
+        )
+
+      val externalRef = "123412342314"
+      val emailAddress = "emailAddress"
+
+      val result: Future[mvc.Result] = messageService.processBounceEvent(externalRef, emailAddress)
+
+      status(result) must be(BAD_REQUEST)
+      contentAsJson(
+        result
+      ).toString mustBe
+        """{"failureId":"INVALID_REQUEST","reason":"Path '/emailAddress' validation failed"}""".stripMargin
+    }
+
     "return INTERNAL_SERVER_ERROR if there is an INTERNAL_SERVER_ERROR received from eis connector" in new TestCase {
       private val messageForAuthorisedUtr: Message =
         getMessageForAuthorisedUtr(messageId, TEST_SOURCE_DATA, Some(testTime), formId = "AtSV2")
