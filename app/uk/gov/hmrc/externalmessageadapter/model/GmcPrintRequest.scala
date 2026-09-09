@@ -85,9 +85,3 @@ object GmcPrintResponse {
 
   def unknownGmcPrintResponseFromHip(status: Int): GmcPrintResponse = GmcPrintResponse(status, UNKNOWN_HIP_ERROR)
 }
-
-case class EmailBounce4xxResponse(message: String)
-
-object EmailBounce4xxResponse {
-  implicit val format: OFormat[EmailBounce4xxResponse] = Json.format[EmailBounce4xxResponse]
-}
