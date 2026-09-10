@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.externalmessageadapter.connectors
 
+import net.jpountz.util.Utils
 import play.api.Logger
 import play.api.http.HeaderNames.{ ACCEPT, AUTHORIZATION, CONTENT_TYPE, DATE }
 import play.api.http.Status.NOT_IMPLEMENTED
@@ -28,6 +29,7 @@ import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, StringContextOps }
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import play.api.libs.ws.writeableOf_JsValue
+import uk.gov.hmrc.externalmessageadapter.utils.Util
 import uk.gov.hmrc.externalmessageadapter.utils.Util.{ COLON, COMMA_WITH_SPACE, EMPTY_STRING, encodeStringToBase64, uuidOfLength32 }
 
 import java.net.URI
@@ -47,6 +49,8 @@ class EISConnector @Inject() (
   val logger: Logger = Logger(this.getClass)
 
   private val isHipProcessingEnabled: Boolean = servicesConfig.getConfBool("hip.email-bounce-back.enabled", false)
+  private val isFallBackToEISEnabled: Boolean =
+    servicesConfig.getConfBool("hip.email-bounce-back.fall-back-to-eis-enabled", false)
 
   def post(gmcPrintRequest: GmcPrintRequest, correlationId: String): Future[Option[GmcPrintResponse]] = {
     logger.debug(
@@ -64,7 +68,7 @@ class EISConnector @Inject() (
 
   private def processRequestOverEIS(gmcPrintRequest: GmcPrintRequest, correlationId: String)(implicit
     hc: HeaderCarrier
-  ) = {
+  ): Future[Option[GmcPrintResponse]] = {
     val eisBaseUrl = servicesConfig.baseUrl("eis")
     val eisBearerToken = servicesConfig.getString("microservice.services.eis.bearer-token")
     val eisEndpoint = servicesConfig.getString("microservice.services.eis.endpoint")
@@ -136,13 +140,15 @@ class EISConnector @Inject() (
       .map {
         case resp if resp.status == Status.OK =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
-          logger.warn(s">>>GmcPrintRequest OK, CorrelationId - $correlationId $responseHeaders")
+          logger.warn(s">>>EmailBounceBackRequest OK, CorrelationId - $correlationId $responseHeaders")
 
           None
 
         case resp if resp.status == BAD_REQUEST =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
-          logger.warn(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}")
+          logger.error(
+            s">>>EmailBounceBackRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}"
+          )
 
           resp.json
             .asOpt[EmailBounceBackResponseBody]
@@ -156,8 +162,9 @@ class EISConnector @Inject() (
 
         case resp if isResponseCode5xx(resp.status) =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
-          logger.warn(s">>>GmcPrintRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}")
-
+          logger.error(
+            s">>>EmailBounceBackRequest ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
+          )
           resp.json
             .asOpt[EmailBounceBackResponseBody]
             .map(
@@ -170,8 +177,8 @@ class EISConnector @Inject() (
 
         case resp if isResponseCode4xx(resp.status) =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
-          logger.warn(
-            s">>>GmcPrintRequest response code ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
+          logger.error(
+            s">>>EmailBounceBackRequest response code ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
           resp.json
             .asOpt[EmailBounce4xxResponse]

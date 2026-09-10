@@ -583,6 +583,73 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
         verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
+
+      "request is sent to hip endpoint, upstream sends SERVICE_UNAVAILABLE response and" +
+        " then request is retried to send to old api over EIS" in new TestCaseWithHipEnabled {
+          val expectedHIPResponse: String =
+            """{
+              |  "origin": "HIP",
+              |  "response": {
+              |    "failures": [
+              |      {
+              |        "type": "Service Unavailable",
+              |        "reason": "service is unavailable due to network layer is down"
+              |      }
+              |    ]
+              |  }
+              |}""".stripMargin
+
+          val expectedEISResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .willReturn(jsonResponse(expectedEISResponse, OK))
+          )
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(jsonResponse(expectedHIPResponse, SERVICE_UNAVAILABLE))
+          )
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(jsonResponse(expectedHIPResponse, SERVICE_UNAVAILABLE))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              reason = "EMAIL_BOUNCE",
+              sourceData = "Some Hashed Data",
+              emailAddress = "a@a.com",
+              formId = Some("CH(A)1708")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+          result.futureValue mustBe None
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
+        }
     }
   }
 
@@ -639,11 +706,12 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
     val mockServiceConfig: ServicesConfig = mock[ServicesConfig]
     val application: Application = new GuiceApplicationBuilder()
       .configure(
-        "play.filters.csp.nonce.enabled"                      -> false,
-        "auditing.enabled"                                    -> "false",
-        "microservice.metrics.graphite.enabled"               -> "false",
-        "metrics.enabled"                                     -> "false",
-        "microservice.services.hip.email-bounce-back.enabled" -> true
+        "play.filters.csp.nonce.enabled"                                       -> false,
+        "auditing.enabled"                                                     -> "false",
+        "microservice.metrics.graphite.enabled"                                -> "false",
+        "metrics.enabled"                                                      -> "false",
+        "microservice.services.hip.email-bounce-back.enabled"                  -> true,
+        "microservice.services.hip.email-bounce-back.fall-back-to-eis-enabled" -> true
       )
       .configure(config)
       .build()
