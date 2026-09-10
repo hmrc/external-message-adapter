@@ -37,6 +37,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import play.api.http.Status.{ BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, NOT_IMPLEMENTED, OK, REQUEST_TIMEOUT, SERVICE_UNAVAILABLE, UNAUTHORIZED }
 import play.api.libs.json.Json
+import com.github.tomakehurst.wiremock.http.RequestMethod.POST
 import uk.gov.hmrc.externalmessageadapter.model.GmcPrintResponse.UNKNOWN_HIP_ERROR
 
 import java.net.URL
@@ -63,6 +64,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
       result.futureValue mustBe None
+
+      verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
     }
 
     "handle Bad request" in new TestCaseWithHipDisabled {
@@ -89,6 +92,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       result.futureValue mustBe Some(
         GmcPrintResponse(BAD_REQUEST, "Submission has not passed validation. Invalid payload.")
       )
+
+      verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
     }
 
     "handle Bad request when downstream call return an unexpected body" in new TestCaseWithHipDisabled {
@@ -109,6 +114,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
       result.futureValue mustBe Some(GmcPrintResponse(BAD_REQUEST, "Unknown eis error"))
+
+      verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
     }
 
     "handle Internal Server" in new TestCaseWithHipDisabled {
@@ -135,6 +142,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
           "IF is currently experiencing problems that require live service intervention."
         )
       )
+
+      verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
     }
 
     "handle Internal Server when downstream call return an unexpected response body" in new TestCaseWithHipDisabled {
@@ -155,6 +164,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
       result.futureValue mustBe Some(GmcPrintResponse(Status.INTERNAL_SERVER_ERROR, "Unknown eis error"))
+
+      verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
     }
 
     "send request to correct endpoint" when {
@@ -202,6 +213,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
           val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
           result.futureValue mustBe None
+
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
         }
 
       "hip.email-bounce-back is enabled and formId is" +
@@ -233,6 +246,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
           val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
           result.futureValue mustBe None
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
         }
 
       "hip.email-bounce-back is enabled and formId is not" +
@@ -263,6 +278,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
           val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
           result.futureValue mustBe None
+
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
         }
     }
 
@@ -314,6 +331,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             "Origin:::HIP The request parameter header.correlationid failed validation due to pattern mismatch."
           )
         )
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
 
       "request is sent to hip endpoint and upstream sends UNAUTHORIZED response" in new TestCaseWithHipEnabled {
@@ -341,6 +360,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         result.futureValue mustBe Some(
           GmcPrintResponse(UNAUTHORIZED, "Authentication information is missing or invalid")
         )
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
 
       "request is sent to hip endpoint and upstream sends FORBIDDEN response" in new TestCaseWithHipEnabled {
@@ -369,6 +390,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(GmcPrintResponse(FORBIDDEN, "Forbidden"))
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
 
       "request is sent to hip endpoint and upstream sends REQUEST_TIMEOUT response" in new TestCaseWithHipEnabled {
@@ -399,6 +422,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         result.futureValue mustBe Some(
           GmcPrintResponse(REQUEST_TIMEOUT, "Timeout")
         )
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
 
       "request is sent to hip endpoint and upstream sends NOT_FOUND response" in new TestCaseWithHipEnabled {
@@ -429,6 +454,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         result.futureValue mustBe Some(
           GmcPrintResponse(NOT_FOUND, "Not found")
         )
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
 
       "request is sent to hip endpoint and upstream sends INTERNAL_SERVER_ERROR response" in new TestCaseWithHipEnabled {
@@ -470,6 +497,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         result.futureValue mustBe Some(
           GmcPrintResponse(INTERNAL_SERVER_ERROR, "server error occurred due to network congestion")
         )
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
 
       "request is sent to hip endpoint and upstream sends SERVICE_UNAVAILABLE response" in new TestCaseWithHipEnabled {
@@ -511,6 +540,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         result.futureValue mustBe Some(
           GmcPrintResponse(SERVICE_UNAVAILABLE, "service is unavailable due to network layer is down")
         )
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
 
       "request is sent to hip endpoint and upstream sends unexpected response code" in new TestCaseWithHipEnabled {
@@ -549,6 +580,8 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
         result.futureValue mustBe Some(
           GmcPrintResponse(NOT_IMPLEMENTED, UNKNOWN_HIP_ERROR)
         )
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
     }
   }
