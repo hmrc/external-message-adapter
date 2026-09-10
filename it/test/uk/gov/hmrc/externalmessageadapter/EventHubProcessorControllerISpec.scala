@@ -226,6 +226,86 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
         status(result) mustBe BAD_REQUEST
       }
 
+      " is to be send over HIP but upstream response is of UNAUTHORIZED" in new TestCaseWithHipEnabled {
+
+        import EventHubEvent.formats
+
+        val request = FakeRequest(
+          POST,
+          "/message-process-eventhub-events",
+          FakeHeaders(),
+          Json.toJson(eventHubEvent)
+        )
+
+        val expectedResponse: String = """{"message":"Authentication information is missing or invalid"}""".stripMargin
+
+        when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
+        when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(MSG)))
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(hipEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(
+              matchingJsonPath(
+                "$.sourceData",
+                equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+              )
+            )
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+            .willReturn(jsonResponse(expectedResponse, UNAUTHORIZED))
+        )
+
+        when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
+
+        val result: Future[Result] = route(application, request).get
+        status(result) mustBe UNAUTHORIZED
+      }
+
+      " is to be send over HIP but upstream response is of FORBIDDEN" in new TestCaseWithHipEnabled {
+
+        import EventHubEvent.formats
+
+        val request = FakeRequest(
+          POST,
+          "/message-process-eventhub-events",
+          FakeHeaders(),
+          Json.toJson(eventHubEvent)
+        )
+
+        val expectedResponse: String = """{"message":"Forbidden"}""".stripMargin
+
+        when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
+        when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(MSG)))
+
+        wireMockServer.stubFor(
+          post(urlPathMatching(hipEndPoint))
+            .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+            .withRequestBody(
+              matchingJsonPath(
+                "$.sourceData",
+                equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+              )
+            )
+            .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+            .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+            .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+            .willReturn(jsonResponse(expectedResponse, FORBIDDEN))
+        )
+
+        when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
+
+        val result: Future[Result] = route(application, request).get
+        status(result) mustBe FORBIDDEN
+      }
+
       "event is BounceEvent and paper notification is to be send over EIS" +
         " but upstream response is of INTERNAL_SERVER_ERROR" in new TestCaseWithHipDisabled {
 
