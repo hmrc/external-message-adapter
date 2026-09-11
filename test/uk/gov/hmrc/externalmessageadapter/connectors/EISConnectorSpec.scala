@@ -583,9 +583,11 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
         verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
+    }
 
-      "request is sent to hip endpoint, upstream sends SERVICE_UNAVAILABLE response and" +
-        " then request is retried to send to old api over EIS" in new TestCaseWithHipEnabled {
+    "retry the request over EIS and get 200 response" when {
+      "hip.email-bounce-back and fallBack to EIS are enabled, request is sent to hip endpoint," +
+        " and HIP sends SERVICE_UNAVAILABLE response" in new TestCaseWithHipAndFallBackToEISEnabled {
           val expectedHIPResponse: String =
             """{
               |  "origin": "HIP",
@@ -601,15 +603,6 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
           val expectedEISResponse =
             """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
-
-          wireMockServer.stubFor(
-            post(urlPathMatching(eisEndPoint))
-              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
-              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
-              .willReturn(jsonResponse(expectedEISResponse, OK))
-          )
 
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
@@ -629,10 +622,107 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .willReturn(jsonResponse(expectedEISResponse, OK))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              reason = "EMAIL_BOUNCE",
+              sourceData = "Some Hashed Data",
+              emailAddress = "a@a.com",
+              formId = Some("CH(A)1708")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+          result.futureValue mustBe None
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
+        }
+
+      "hip.email-bounce-back and fallBack to EIS are enabled, request is sent to hip endpoint," +
+        " and HIP sends INTERNAL_SERVER_ERROR response" in new TestCaseWithHipAndFallBackToEISEnabled {
+          val expectedHIPResponse: String =
+            """{
+              |  "origin": "HIP",
+              |  "response": {
+              |    "failures": [
+              |      {
+              |        "type": "Service Unavailable",
+              |        "reason": "service is unavailable due to network layer is down"
+              |      }
+              |    ]
+              |  }
+              |}""".stripMargin
+
+          val expectedEISResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
-              .willReturn(jsonResponse(expectedHIPResponse, SERVICE_UNAVAILABLE))
+              .willReturn(jsonResponse(expectedHIPResponse, INTERNAL_SERVER_ERROR))
+          )
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .willReturn(jsonResponse(expectedEISResponse, OK))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              reason = "EMAIL_BOUNCE",
+              sourceData = "Some Hashed Data",
+              emailAddress = "a@a.com",
+              formId = Some("CH(A)1708")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+          result.futureValue mustBe None
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
+        }
+
+      "hip.email-bounce-back and fallBack to EIS are enabled, request is sent to hip endpoint," +
+        " and HIP sends UNAUTHORIZED response" in new TestCaseWithHipAndFallBackToEISEnabled {
+          val expectedHIPResponse: String =
+            """{"message":"Authentication information is missing or invalid"}""".stripMargin
+
+          val expectedEISResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(jsonResponse(expectedHIPResponse, UNAUTHORIZED))
+          )
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .willReturn(jsonResponse(expectedEISResponse, OK))
           )
 
           val reprintRequest: GmcPrintRequest =
@@ -695,6 +785,30 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
   }
 
   trait TestCaseWithHipEnabled {
+
+    val hipEndPoint = "/emailBounceback"
+    val eisEndPoint = "/sa-forms/suppression/send-letter"
+    val authToken = "Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
+
+    implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
+    implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+
+    val mockServiceConfig: ServicesConfig = mock[ServicesConfig]
+    val application: Application = new GuiceApplicationBuilder()
+      .configure(
+        "play.filters.csp.nonce.enabled"                      -> false,
+        "auditing.enabled"                                    -> "false",
+        "microservice.metrics.graphite.enabled"               -> "false",
+        "metrics.enabled"                                     -> "false",
+        "microservice.services.hip.email-bounce-back.enabled" -> true
+      )
+      .configure(config)
+      .build()
+
+    val eisConnector: EISConnector = application.injector.instanceOf[EISConnector]
+  }
+
+  trait TestCaseWithHipAndFallBackToEISEnabled {
 
     val hipEndPoint = "/emailBounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"

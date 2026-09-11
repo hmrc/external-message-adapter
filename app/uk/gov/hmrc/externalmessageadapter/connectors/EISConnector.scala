@@ -60,7 +60,7 @@ class EISConnector @Inject() (
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(EMPTY_STRING)) && isHipProcessingEnabled) {
-      processRequestOverHIP(gmcPrintRequest)
+      processRequestOverHIP(gmcPrintRequest).flatten
     } else {
       processRequestOverEIS(gmcPrintRequest, correlationId)
     }
@@ -117,7 +117,7 @@ class EISConnector @Inject() (
 
   private def processRequestOverHIP(
     gmcPrintRequest: GmcPrintRequest
-  )(implicit hc: HeaderCarrier): Future[Option[GmcPrintResponse]] = {
+  )(implicit hc: HeaderCarrier): Future[Future[Option[GmcPrintResponse]]] = {
     val hipBaseUrl = servicesConfig.baseUrl("hip")
     val hipClientId = servicesConfig.getString("microservice.services.hip.email-bounce-back.client-id")
     val hipClientSecret = servicesConfig.getString("microservice.services.hip.email-bounce-back.client-secret")
@@ -142,7 +142,7 @@ class EISConnector @Inject() (
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
           logger.warn(s">>>EmailBounceBackRequest OK, CorrelationId - $correlationId $responseHeaders")
 
-          None
+          Future(None)
 
         case resp if resp.status == BAD_REQUEST =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
@@ -150,52 +150,68 @@ class EISConnector @Inject() (
             s">>>EmailBounceBackRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
 
-          resp.json
-            .asOpt[EmailBounceBackResponseBody]
-            .map(
-              _.response
-                .fold(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status))(
-                  _.toGmcPrintHIPResponse(resp.status)
-                )
-            )
-            .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
+          Future(processHIPResponse(resp))
 
         case resp if isResponseCode5xx(resp.status) =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
           logger.error(
             s">>>EmailBounceBackRequest ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
-          resp.json
-            .asOpt[EmailBounceBackResponseBody]
-            .map(
-              _.response
-                .fold(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status))(
-                  _.toGmcPrintHIPResponse(resp.status)
-                )
-            )
-            .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
+
+          if (isFallBackToEISEnabled) {
+            val correlationIdForEIS = Util.uuidOfLength31
+            logErrorForEISFallBackScenario(resp.status, correlationIdForEIS)
+            processRequestOverEIS(gmcPrintRequest.copy(externalRefId = None), correlationIdForEIS)
+          } else {
+            Future(processHIPResponse(resp))
+          }
 
         case resp if isResponseCode4xx(resp.status) =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
           logger.error(
             s">>>EmailBounceBackRequest response code ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
-          resp.json
-            .asOpt[EmailBounce4xxResponse]
-            .map(emailBounceResponse => GmcPrintResponse(resp.status, emailBounceResponse.message))
-            .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
+          if (isFallBackToEISEnabled) {
+            val correlationIdForEIS = Util.uuidOfLength31
+            logErrorForEISFallBackScenario(resp.status, correlationIdForEIS)
+            processRequestOverEIS(gmcPrintRequest.copy(externalRefId = None), correlationIdForEIS)
+          } else {
+            Future(
+              resp.json
+                .asOpt[EmailBounce4xxResponse]
+                .map(emailBounceResponse => GmcPrintResponse(resp.status, emailBounceResponse.message))
+                .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
+            )
+          }
       }
       .recover { case _ =>
         logger.error("Either unexpected HIP response or technical error occurred")
-        Option(GmcPrintResponse.unknownGmcPrintResponseFromHip(NOT_IMPLEMENTED))
+        Future(Option(GmcPrintResponse.unknownGmcPrintResponseFromHip(NOT_IMPLEMENTED)))
       }
   }
+
+  private def processHIPResponse(resp: HttpResponse) =
+    resp.json
+      .asOpt[EmailBounceBackResponseBody]
+      .map(
+        _.response
+          .fold(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status))(
+            _.toGmcPrintHIPResponse(resp.status)
+          )
+      )
+      .orElse(Some(GmcPrintResponse.unknownGmcPrintResponseFromHip(resp.status)))
 
   private def isResponseCode4xx(responseStatus: Int): Boolean =
     List(UNAUTHORIZED, FORBIDDEN, NOT_FOUND, REQUEST_TIMEOUT).contains(responseStatus)
 
   private def isResponseCode5xx(responseStatus: Int) =
     responseStatus == INTERNAL_SERVER_ERROR || responseStatus == SERVICE_UNAVAILABLE
+
+  private def logErrorForEISFallBackScenario(responseCode: Int, correlationId: String) =
+    logger.error(
+      s">>>>>> Retrying over EIS with CorrelationId $correlationId due to" +
+        s" $responseCode response received over HIP for emailBounceBack"
+    )
 }
 
 object CustomHeaders {
