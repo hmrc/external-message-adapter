@@ -149,8 +149,11 @@ class EISConnector @Inject() (
           logger.error(
             s">>>EmailBounceBackRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
-
-          Future(processHIPResponse(resp))
+          if (isFallBackToEISEnabled) {
+            retyrRequestOverEIS(gmcPrintRequest, resp)
+          } else {
+            Future(processHIPResponse(resp))
+          }
 
         case resp if isResponseCode5xx(resp.status) =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
@@ -159,9 +162,7 @@ class EISConnector @Inject() (
           )
 
           if (isFallBackToEISEnabled) {
-            val correlationIdForEIS = Util.uuidOfLength31
-            logErrorForEISFallBackScenario(resp.status, correlationIdForEIS)
-            processRequestOverEIS(gmcPrintRequest.copy(externalRefId = None), correlationIdForEIS)
+            retyrRequestOverEIS(gmcPrintRequest, resp)
           } else {
             Future(processHIPResponse(resp))
           }
@@ -172,9 +173,7 @@ class EISConnector @Inject() (
             s">>>EmailBounceBackRequest response code ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
           if (isFallBackToEISEnabled) {
-            val correlationIdForEIS = Util.uuidOfLength31
-            logErrorForEISFallBackScenario(resp.status, correlationIdForEIS)
-            processRequestOverEIS(gmcPrintRequest.copy(externalRefId = None), correlationIdForEIS)
+            retyrRequestOverEIS(gmcPrintRequest, resp)
           } else {
             Future(
               resp.json
@@ -188,6 +187,14 @@ class EISConnector @Inject() (
         logger.error("Either unexpected HIP response or technical error occurred")
         Future(Option(GmcPrintResponse.unknownGmcPrintResponseFromHip(NOT_IMPLEMENTED)))
       }
+  }
+
+  private def retyrRequestOverEIS(gmcPrintRequest: GmcPrintRequest, resp: HttpResponse)(implicit hc: HeaderCarrier) = {
+    val correlationIdForEIS = Util.uuidOfLength31
+
+    logErrorForEISFallBackScenario(resp.status, correlationIdForEIS)
+
+    processRequestOverEIS(gmcPrintRequest.copy(externalRefId = None), correlationIdForEIS)
   }
 
   private def processHIPResponse(resp: HttpResponse) =

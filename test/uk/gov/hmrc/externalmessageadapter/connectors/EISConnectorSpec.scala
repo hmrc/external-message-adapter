@@ -786,6 +786,65 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
           verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
           verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
         }
+
+      "hip.email-bounce-back and fallBack to EIS are enabled, request is sent to hip endpoint," +
+        " and HIP sends BAD_REQUEST response" in new TestCaseWithHipAndFallBackToEISEnabled {
+          val expectedHIPResponse: String =
+            """{
+              |  "origin": "HIP",
+              |  "response": {
+              |    "failures": [
+              |      {
+              |        "type": "header.correlationid",
+              |        "reason": "The request parameter header.correlationid failed validation due to pattern mismatch."
+              |      },
+              |      {
+              |        "type": "body.schema.pattern",
+              |        "reason": "Path '/emailAddress' validation failed."
+              |      }
+              |    ]
+              |  }
+              |}""".stripMargin
+
+          val expectedEISResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(jsonResponse(expectedHIPResponse, BAD_REQUEST))
+          )
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .willReturn(jsonResponse(expectedEISResponse, OK))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              reason = "EMAIL_BOUNCE",
+              sourceData = "Some Hashed Data",
+              emailAddress = "a@a.com",
+              formId = Some("CH(A)1708")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+          await(result) mustBe empty
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
+        }
     }
 
     "retry the request over EIS and gets error response from EIS endPoint" when {
