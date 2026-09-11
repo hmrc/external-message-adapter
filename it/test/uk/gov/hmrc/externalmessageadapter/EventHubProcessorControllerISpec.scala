@@ -43,7 +43,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite with WireMockSupportProvider {
 
-  "processEventHubEvents (/message-process-eventhub-events)" must {
+  "processEventHubEvents (POST - /message-process-eventhub-events)" must {
 
     "process the event successfully" when {
 
