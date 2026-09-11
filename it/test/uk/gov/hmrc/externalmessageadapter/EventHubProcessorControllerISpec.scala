@@ -37,6 +37,7 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.common.message.model.{ Details, Message }
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
 import com.github.tomakehurst.wiremock.client.WireMock.*
+import com.github.tomakehurst.wiremock.http.RequestMethod.{ POST => WIREMOCK_POST }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -80,8 +81,10 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
           when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
 
-          val result: Future[Result] = route(application, request).get
+          val result: Future[Result] = route(application, request).head
           status(result) mustBe NO_CONTENT
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, WIREMOCK_POST)
         }
 
       "event is BounceEvent and paper notification is to be send over EIS " in new TestCaseWithHipDisabled {
@@ -117,8 +120,10 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
         when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
 
-        val result: Future[Result] = route(application, request).get
+        val result: Future[Result] = route(application, request).head
         status(result) mustBe NO_CONTENT
+
+        verifyExactlyOneEndPointUrlHit(eisEndPoint, WIREMOCK_POST)
       }
     }
 
@@ -171,8 +176,10 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
           when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
 
-          val result: Future[Result] = route(application, request).get
+          val result: Future[Result] = route(application, request).head
           status(result) mustBe INTERNAL_SERVER_ERROR
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, WIREMOCK_POST)
         }
 
       " is to be send over HIP but upstream response is of BAD_REQUEST" in new TestCaseWithHipEnabled {
@@ -222,8 +229,10 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
         when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
 
-        val result: Future[Result] = route(application, request).get
+        val result: Future[Result] = route(application, request).head
         status(result) mustBe BAD_REQUEST
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, WIREMOCK_POST)
       }
 
       " is to be send over HIP but upstream response is of UNAUTHORIZED" in new TestCaseWithHipEnabled {
@@ -262,8 +271,10 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
         when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
 
-        val result: Future[Result] = route(application, request).get
+        val result: Future[Result] = route(application, request).head
         status(result) mustBe UNAUTHORIZED
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, WIREMOCK_POST)
       }
 
       " is to be send over HIP but upstream response is of FORBIDDEN" in new TestCaseWithHipEnabled {
@@ -302,8 +313,10 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
         when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
 
-        val result: Future[Result] = route(application, request).get
+        val result: Future[Result] = route(application, request).head
         status(result) mustBe FORBIDDEN
+
+        verifyExactlyOneEndPointUrlHit(hipEndPoint, WIREMOCK_POST)
       }
 
       "event is BounceEvent and paper notification is to be send over EIS" +
@@ -350,8 +363,220 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
           when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
 
-          val result: Future[Result] = route(application, request).get
+          val result: Future[Result] = route(application, request).head
           status(result) mustBe INTERNAL_SERVER_ERROR
+
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, WIREMOCK_POST)
+        }
+    }
+
+    "return the correct response" when {
+
+      "request is retried over EIS due to INTERNAL_SERVER_ERROR response" +
+        " received over HIP" in new TestCaseWithHipAndFallBackToEISEnabled {
+
+          import EventHubEvent.formats
+
+          val request = FakeRequest(
+            POST,
+            "/message-process-eventhub-events",
+            FakeHeaders(),
+            Json.toJson(eventHubEvent)
+          )
+
+          val expectedHIPResponse: String =
+            """{
+              |  "origin": "HIP",
+              |  "response": {
+              |    "failures": [
+              |      {
+              |        "type": "Service Unavailable",
+              |        "reason": "service is unavailable due to network layer is down"
+              |      }
+              |    ]
+              |  }
+              |}""".stripMargin
+
+          val expectedEISResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+
+          when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
+          when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(MSG)))
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(
+                matchingJsonPath(
+                  "$.sourceData",
+                  equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+                )
+              )
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(jsonResponse(expectedHIPResponse, INTERNAL_SERVER_ERROR))
+          )
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(
+                matchingJsonPath(
+                  "$.sourceData",
+                  equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+                )
+              )
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .willReturn(jsonResponse(expectedEISResponse, OK))
+          )
+
+          when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
+
+          val result: Future[Result] = route(application, request).head
+          status(result) mustBe NO_CONTENT
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, WIREMOCK_POST)
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, WIREMOCK_POST)
+        }
+
+      "request is retried over EIS due to BAD_REQUEST response received" +
+        " over HIP" in new TestCaseWithHipAndFallBackToEISEnabled {
+
+          import EventHubEvent.formats
+
+          val request = FakeRequest(
+            POST,
+            "/message-process-eventhub-events",
+            FakeHeaders(),
+            Json.toJson(eventHubEvent)
+          )
+
+          val expectedHIPResponse: String =
+            """{
+              |  "origin": "HIP",
+              |  "response": {
+              |    "failures": [
+              |      {
+              |        "type": "header.correlationid",
+              |        "reason": "The request parameter header.correlationid failed validation due to pattern mismatch."
+              |      },
+              |      {
+              |        "type": "body.schema.pattern",
+              |        "reason": "Path '/emailAddress' validation failed."
+              |      }
+              |    ]
+              |  }
+              |}""".stripMargin
+
+          val expectedEISResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+
+          when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
+          when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(MSG)))
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(
+                matchingJsonPath(
+                  "$.sourceData",
+                  equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+                )
+              )
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(jsonResponse(expectedHIPResponse, BAD_REQUEST))
+          )
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(
+                matchingJsonPath(
+                  "$.sourceData",
+                  equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+                )
+              )
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .willReturn(jsonResponse(expectedEISResponse, OK))
+          )
+
+          when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
+
+          val result: Future[Result] = route(application, request).head
+          status(result) mustBe NO_CONTENT
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, WIREMOCK_POST)
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, WIREMOCK_POST)
+        }
+
+      "request is retried over EIS due to UNAUTHORIZED response received" +
+        " over HIP" in new TestCaseWithHipAndFallBackToEISEnabled {
+
+          import EventHubEvent.formats
+
+          val request = FakeRequest(
+            POST,
+            "/message-process-eventhub-events",
+            FakeHeaders(),
+            Json.toJson(eventHubEvent)
+          )
+
+          val expectedHIPResponse: String =
+            """{"message":"Authentication information is missing or invalid"}""".stripMargin
+
+          val expectedEISResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+
+          when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
+          when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(MSG)))
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(
+                matchingJsonPath(
+                  "$.sourceData",
+                  equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+                )
+              )
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(jsonResponse(expectedHIPResponse, UNAUTHORIZED))
+          )
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(
+                matchingJsonPath(
+                  "$.sourceData",
+                  equalTo("ew0KICAgIm5hbWUiOiAiRGFuaWVsIiwNCiAgICJzZWF0IiA6ICJ5ZXMiDQp9")
+                )
+              )
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .willReturn(jsonResponse(expectedEISResponse, OK))
+          )
+
+          when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
+
+          val result: Future[Result] = route(application, request).head
+          status(result) mustBe NO_CONTENT
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, WIREMOCK_POST)
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, WIREMOCK_POST)
         }
     }
   }
@@ -460,6 +685,58 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
         "metrics.enabled"                                     -> "false",
         "microservice.services.hip.email-bounce-back.enabled" -> true,
         "handle.bounce.eventhub"                              -> true
+      )
+      .configure(config)
+      .build()
+  }
+
+  trait TestCaseWithHipAndFallBackToEISEnabled {
+
+    val hipEndPoint = "/emailBounceback"
+    val eisEndPoint = "/sa-forms/suppression/send-letter"
+    val authToken = "authToken23432"
+
+    val eventBody: EventBody =
+      EventBody(
+        event = "permanentbounce",
+        emailAddress = TEST_EMAIL_ADDRESS_VALUE,
+        detected = TEST_LOCAL_DATE_TIME,
+        code = 2,
+        reason = TEST_REASON,
+        tags = Map("messageId" -> "6a5645a2c0510b9d8d982ebd")
+      )
+
+    val eventHubEvent: EventHubEvent =
+      EventHubEvent(eventId = TEST_ID, timestamp = TEST_LOCAL_DATE_TIME, event = eventBody)
+
+    val details = Details(
+      Some("CH(A)1700"),
+      Some("print-suppression-notification"),
+      Some(TEST_LOCAL_DATE.minusDays(1).toString),
+      Some("C0123456781234568")
+    )
+
+    val MSG: Message = TEST_MESSAGE.copy(body = Some(details))
+
+    implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
+    implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+
+    val mockMessagesUtil: MessagesUtil = mock[MessagesUtil]
+    val mockMsgRepository: MongoMessageRepository = mock[MongoMessageRepository]
+
+    val application: Application = new GuiceApplicationBuilder()
+      .overrides(
+        inject.bind[MessagesUtil].toInstance(mockMessagesUtil),
+        inject.bind[MongoMessageRepository].toInstance(mockMsgRepository)
+      )
+      .configure(
+        "play.filters.csp.nonce.enabled"                                       -> false,
+        "auditing.enabled"                                                     -> "false",
+        "microservice.metrics.graphite.enabled"                                -> "false",
+        "metrics.enabled"                                                      -> "false",
+        "microservice.services.hip.email-bounce-back.enabled"                  -> true,
+        "handle.bounce.eventhub"                                               -> true,
+        "microservice.services.hip.email-bounce-back.fall-back-to-eis-enabled" -> true
       )
       .configure(config)
       .build()
