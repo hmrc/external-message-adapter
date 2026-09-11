@@ -207,7 +207,7 @@ class EISConnector @Inject() (
   private def isResponseCode5xx(responseStatus: Int) =
     responseStatus == INTERNAL_SERVER_ERROR || responseStatus == SERVICE_UNAVAILABLE
 
-  private def logErrorForEISFallBackScenario(responseCode: Int, correlationId: String) =
+  private def logErrorForEISFallBackScenario(responseCode: Int, correlationId: String): Unit =
     logger.error(
       s">>>>>> Retrying over EIS with CorrelationId $correlationId due to" +
         s" $responseCode response received over HIP for emailBounceBack"
