@@ -39,6 +39,7 @@ import play.api.http.Status.{ BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT
 import play.api.libs.json.Json
 import com.github.tomakehurst.wiremock.http.RequestMethod.POST
 import uk.gov.hmrc.externalmessageadapter.model.GmcPrintResponse.UNKNOWN_HIP_ERROR
+import play.api.test.Helpers.*
 
 import java.net.URL
 import scala.concurrent.{ ExecutionContext, Future }
@@ -63,7 +64,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
       val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
-      result.futureValue mustBe None
+      await(result) mustBe empty
 
       verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
     }
@@ -212,7 +213,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
           val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
-          result.futureValue mustBe None
+          await(result) mustBe empty
 
           verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
         }
@@ -635,7 +636,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
           val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
-          result.futureValue mustBe None
+          await(result) mustBe empty
 
           verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
           verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
@@ -690,7 +691,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
           val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
-          result.futureValue mustBe None
+          await(result) mustBe empty
 
           verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
           verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
@@ -735,7 +736,106 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
           val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
 
-          result.futureValue mustBe None
+          await(result) mustBe empty
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
+        }
+
+      "hip.email-bounce-back and fallBack to EIS are enabled, request is sent to hip endpoint," +
+        " and HIP sends FORBIDDEN response" in new TestCaseWithHipAndFallBackToEISEnabled {
+          val expectedHIPResponse: String =
+            """{"message":"Forbidden"}""".stripMargin
+
+          val expectedEISResponse =
+            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(jsonResponse(expectedHIPResponse, FORBIDDEN))
+          )
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .willReturn(jsonResponse(expectedEISResponse, OK))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              reason = "EMAIL_BOUNCE",
+              sourceData = "Some Hashed Data",
+              emailAddress = "a@a.com",
+              formId = Some("CH(A)1708")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+          await(result) mustBe empty
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+          verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
+        }
+    }
+
+    "retry the request over EIS and gets error response from EIS endPoint" when {
+      "hip.email-bounce-back and fallBack to EIS are enabled, request is sent to hip endpoint," +
+        " and HIP sends FORBIDDEN response" in new TestCaseWithHipAndFallBackToEISEnabled {
+          val expectedHIPResponse: String =
+            """{"message":"Forbidden"}""".stripMargin
+
+          val expectedEISResponse =
+            """{"failures":[{"code":"SERVER_ERROR","reason":"IF is currently experiencing problems that require live service intervention."}]}"""
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(jsonResponse(expectedHIPResponse, FORBIDDEN))
+          )
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(eisEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .willReturn(jsonResponse(expectedEISResponse, INTERNAL_SERVER_ERROR))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              reason = "EMAIL_BOUNCE",
+              sourceData = "Some Hashed Data",
+              emailAddress = "a@a.com",
+              formId = Some("CH(A)1708")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+
+          val resultValue: Option[GmcPrintResponse] = await(result)
+
+          resultValue mustBe Some(
+            GmcPrintResponse(
+              INTERNAL_SERVER_ERROR,
+              "IF is currently experiencing problems that require live service intervention."
+            )
+          )
 
           verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
           verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
