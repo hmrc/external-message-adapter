@@ -150,7 +150,7 @@ class EISConnector @Inject() (
             s">>>EmailBounceBackRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
           if (isFallBackToEISEnabled) {
-            retyrRequestOverEIS(gmcPrintRequest, resp)
+            retryRequestOverEIS(gmcPrintRequest, resp)
           } else {
             Future(processHIPResponse(resp))
           }
@@ -162,7 +162,7 @@ class EISConnector @Inject() (
           )
 
           if (isFallBackToEISEnabled) {
-            retyrRequestOverEIS(gmcPrintRequest, resp)
+            retryRequestOverEIS(gmcPrintRequest, resp)
           } else {
             Future(processHIPResponse(resp))
           }
@@ -173,7 +173,7 @@ class EISConnector @Inject() (
             s">>>EmailBounceBackRequest response code ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
           if (isFallBackToEISEnabled) {
-            retyrRequestOverEIS(gmcPrintRequest, resp)
+            retryRequestOverEIS(gmcPrintRequest, resp)
           } else {
             Future(
               resp.json
@@ -189,7 +189,7 @@ class EISConnector @Inject() (
       }
   }
 
-  private def retyrRequestOverEIS(gmcPrintRequest: GmcPrintRequest, resp: HttpResponse)(implicit hc: HeaderCarrier) = {
+  private def retryRequestOverEIS(gmcPrintRequest: GmcPrintRequest, resp: HttpResponse)(implicit hc: HeaderCarrier) = {
     val correlationIdForEIS = Util.uuidOfLength31
 
     logErrorForEISFallBackScenario(resp.status, correlationIdForEIS)
