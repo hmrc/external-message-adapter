@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.externalmessageadapter.utils
 
+import java.nio.charset.StandardCharsets
 import java.util.{ Base64, UUID }
 
 object Util {
@@ -43,5 +44,5 @@ object Util {
   def uuidWithHyphenAndOfLength36: String = UUID.randomUUID().toString
 
   def encodeStringToBase64(inputString: String): String =
-    Base64.getEncoder.encodeToString(inputString.getBytes("UTF-8"))
+    Base64.getEncoder.encodeToString(inputString.getBytes(StandardCharsets.UTF_8))
 }
