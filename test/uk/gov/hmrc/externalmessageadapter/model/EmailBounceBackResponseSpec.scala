@@ -143,6 +143,24 @@ class EmailBounceBackResponseSpec extends SpecBase {
     }
   }
 
+  "EmailBounce4xxResponse" must {
+    import EmailBounce4xxResponse.format
+
+    "read the json correctly" in new Setup {
+      Json.parse(emailBounce4xxResponseJsonString).as[EmailBounce4xxResponse] mustBe emailBounce4xxResponseOb
+    }
+
+    "throw exception for invalid json" in new Setup {
+      intercept[JsResultException] {
+        Json.parse(emailBounce4xxResponseInvalidJsonString).as[EmailBounce4xxResponse]
+      }
+    }
+
+    "write the object correctly" in new Setup {
+      Json.toJson(emailBounce4xxResponseOb) mustBe Json.parse(emailBounce4xxResponseJsonString)
+    }
+  }
+
   trait Setup {
     val emailBounceBackFailureResJsonString: String =
       """{
@@ -217,5 +235,10 @@ class EmailBounceBackResponseSpec extends SpecBase {
     )
     val emailBounceBackReseBodyOb =
       EmailBounceBackResponseBody(origin = HIP, response = Some(emailBounceBackFailuresResObForResBody))
+
+    val emailBounce4xxResponseJsonString = """{"message":"Unauthorized"}"""
+    val emailBounce4xxResponseInvalidJsonString = """{}"""
+
+    val emailBounce4xxResponseOb = EmailBounce4xxResponse("Unauthorized")
   }
 }
