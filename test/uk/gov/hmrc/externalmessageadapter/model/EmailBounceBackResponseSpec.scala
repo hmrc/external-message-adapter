@@ -236,9 +236,11 @@ class EmailBounceBackResponseSpec extends SpecBase {
     val emailBounceBackReseBodyOb =
       EmailBounceBackResponseBody(origin = HIP, response = Some(emailBounceBackFailuresResObForResBody))
 
-    val emailBounce4xxResponseJsonString = """{"message":"Unauthorized"}"""
+    val emailBounce4xxResponseJsonString =
+      """{"message":"Unauthorized", "request_id":"0d4ad75e65f3e920389c170719dc4355"}"""
+
     val emailBounce4xxResponseInvalidJsonString = """{}"""
 
-    val emailBounce4xxResponseOb = EmailBounce4xxResponse("Unauthorized")
+    val emailBounce4xxResponseOb = EmailBounce4xxResponse("Unauthorized", Some("0d4ad75e65f3e920389c170719dc4355"))
   }
 }
