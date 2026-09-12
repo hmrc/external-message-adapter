@@ -945,7 +945,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
   trait TestCaseWithHipEnabled {
 
-    val hipEndPoint = "/emailBounceback"
+    val hipEndPoint = "/ccmp/emailBounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
 
@@ -969,7 +969,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
   trait TestCaseWithHipAndFallBackToEISEnabled {
 
-    val hipEndPoint = "/emailBounceback"
+    val hipEndPoint = "/ccmp/emailBounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
 

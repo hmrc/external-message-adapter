@@ -641,7 +641,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
   trait TestCaseWithHipEnabled {
 
-    val hipEndPoint = "/emailBounceback"
+    val hipEndPoint = "/ccmp/emailBounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "authToken23432"
 
@@ -692,7 +692,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
   trait TestCaseWithHipAndFallBackToEISEnabled {
 
-    val hipEndPoint = "/emailBounceback"
+    val hipEndPoint = "/ccmp/emailBounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "authToken23432"
 
