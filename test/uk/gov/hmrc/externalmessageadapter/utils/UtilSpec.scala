@@ -51,4 +51,13 @@ class UtilSpec extends SpecBase {
       encodeStringToBase64("AbCdEf123456:AbCdEf123897") mustBe "QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
     }
   }
+
+  "uuidWithHyphenAndOfLength36" should {
+    "return UUID of 36 characters and with hyphen" in {
+      val resultedUUID = uuidWithHyphenAndOfLength36
+
+      resultedUUID.length mustBe 36
+      resultedUUID.contains(HYPHEN) mustBe true
+    }
+  }
 }

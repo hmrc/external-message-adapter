@@ -40,6 +40,8 @@ object Util {
   def uuidOfLength32: String =
     UUID.randomUUID().toString.replace(HYPHEN, EMPTY_STRING).substring(0, LENGTH_32)
 
+  def uuidWithHyphenAndOfLength36: String = UUID.randomUUID().toString
+
   def encodeStringToBase64(inputString: String): String =
     Base64.getEncoder.encodeToString(inputString.getBytes("UTF-8"))
 }
