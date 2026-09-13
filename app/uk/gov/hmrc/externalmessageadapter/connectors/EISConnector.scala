@@ -147,7 +147,7 @@ class EISConnector @Inject() (
         case resp if resp.status == BAD_REQUEST =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
           logger.error(
-            s">>>EmailBounceBackRequest BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}"
+            s">>>EmailBounceBackRequest 4xx response code BAD_REQUEST, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
           if (isFallBackToEISEnabled) {
             retryRequestOverEIS(gmcPrintRequest, resp)
@@ -158,7 +158,7 @@ class EISConnector @Inject() (
         case resp if isResponseCode5xx(resp.status) =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
           logger.error(
-            s">>>EmailBounceBackRequest ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
+            s">>>EmailBounceBackRequest 5xx response code ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
 
           if (isFallBackToEISEnabled) {
@@ -170,7 +170,7 @@ class EISConnector @Inject() (
         case resp if isResponseCode4xx(resp.status) =>
           val responseHeaders: String = resp.headers.map(i => i._1 + "->" + i._2).mkString(COMMA_WITH_SPACE)
           logger.error(
-            s">>>EmailBounceBackRequest response code ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
+            s">>>EmailBounceBackRequest 4xx response code ${resp.status}, CorrelationId - $correlationId $responseHeaders ${resp.body}"
           )
           if (isFallBackToEISEnabled) {
             retryRequestOverEIS(gmcPrintRequest, resp)
@@ -184,7 +184,7 @@ class EISConnector @Inject() (
           }
       }
       .recover { case _ =>
-        logger.error("Either unexpected HIP response or technical error occurred")
+        logger.error("Either unexpected HIP response received or technical error occurred")
         Future(Option(GmcPrintResponse.unknownGmcPrintResponseFromHip(NOT_IMPLEMENTED)))
       }
   }
