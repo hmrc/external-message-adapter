@@ -116,7 +116,7 @@ TODO
 
 ### POST /message-process-eventhub-events
 
-Bounce events with FormIds CH(A)1700, CH(A)1708 (API 5951) are processed over HIP. Rest of the formIds for Bounce events are
+Bounce events with FormIds CH(A)1700, CH(A)1708 (API 5951) are processed (if relevant config is enabled) over HIP. Rest of the formIds for Bounce events are
 processed over EIS
 
 Sample request
