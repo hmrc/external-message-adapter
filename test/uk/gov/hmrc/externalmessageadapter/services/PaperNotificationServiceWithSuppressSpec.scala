@@ -29,7 +29,7 @@ import play.api.Configuration
 import uk.gov.hmrc.common.message.model._
 import uk.gov.hmrc.domain.SaUtr
 import uk.gov.hmrc.externalmessageadapter.MetricOrchestratorStub
-import uk.gov.hmrc.externalmessageadapter.connectors.EISConnector
+import uk.gov.hmrc.externalmessageadapter.connectors.EISAndHIPConnector
 import uk.gov.hmrc.externalmessageadapter.util.MessageFixtures
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.metrix.MetricOrchestrator
@@ -45,13 +45,13 @@ class PaperNotificationServiceWithSuppressSpec
     extends PlaySpec with MockitoSugar with LoneElement with ScalaFutures with MetricOrchestratorStub
     with IntegrationPatience {
 
-  val auditConnector = mock[AuditConnector]
-  val eisConnector = mock[EISConnector]
+  val auditConnector: AuditConnector = mock[AuditConnector]
+  val eisAndHipConnector: EISAndHIPConnector = mock[EISAndHIPConnector]
 
   private val injector: Injector = new GuiceApplicationBuilder()
     .overrides(bind[MetricOrchestrator].toInstance(mockMetricOrchestrator))
     .overrides(bind[AuditConnector].toInstance(auditConnector))
-    .overrides(bind[EISConnector].toInstance(eisConnector))
+    .overrides(bind[EISAndHIPConnector].toInstance(eisAndHipConnector))
     .configure(
       "gmc.denylist"                -> List("SA999", "SA888"),
       "metrics.enabled"             -> "false",
@@ -103,7 +103,7 @@ class PaperNotificationServiceWithSuppressSpec
           not contain ("deskProTicketSequenceNumber" -> "1")
       }
 
-      verifyNoInteractions(eisConnector)
+      verifyNoInteractions(eisAndHipConnector)
     }
   }
 

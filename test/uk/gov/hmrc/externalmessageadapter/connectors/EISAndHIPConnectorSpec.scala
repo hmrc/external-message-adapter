@@ -44,9 +44,10 @@ import play.api.test.Helpers.*
 import java.net.URL
 import scala.concurrent.{ ExecutionContext, Future }
 
-class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSupportProvider with IntegrationPatience {
+class EISAndHIPConnectorSpec
+    extends SpecBase with GuiceOneAppPerSuite with WireMockSupportProvider with IntegrationPatience {
 
-  "EIS connector post" must {
+  "EIS and HIP connector post" must {
     import GmcPrintRequest.format
 
     "allow us to request a paper version of a message" in new TestCaseWithHipDisabled {
@@ -62,7 +63,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
           .willReturn(ok(Json.toJson(expectedBody).toString))
       )
 
-      val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+      val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
       await(result) mustBe empty
 
@@ -88,7 +89,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
       val reprintRequest: GmcPrintRequest = GmcPrintRequest("EMAIL_BOUNCE", "Some Hashed Data", "a@a.com")
 
-      val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+      val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
       result.futureValue mustBe Some(
         GmcPrintResponse(BAD_REQUEST, "Submission has not passed validation. Invalid payload.")
@@ -112,7 +113,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
       val reprintRequest: GmcPrintRequest = GmcPrintRequest("EMAIL_BOUNCE", "Some Hashed Data", "a@a.com")
 
-      val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+      val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
       result.futureValue mustBe Some(GmcPrintResponse(BAD_REQUEST, "Unknown eis error"))
 
@@ -135,7 +136,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
       val reprintRequest: GmcPrintRequest = GmcPrintRequest("EMAIL_BOUNCE", "Some Hashed Data", "a@a.com")
 
-      val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+      val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
       result.futureValue mustBe Some(
         GmcPrintResponse(
@@ -162,7 +163,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
       val reprintRequest: GmcPrintRequest = GmcPrintRequest("EMAIL_BOUNCE", "Some Hashed Data", "a@a.com")
 
-      val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+      val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
       result.futureValue mustBe Some(GmcPrintResponse(Status.INTERNAL_SERVER_ERROR, "Unknown eis error"))
 
@@ -184,7 +185,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
 
         val reprintRequest: GmcPrintRequest = GmcPrintRequest("EMAIL_BOUNCE", "Some Hashed Data", "a@a.com")
 
-        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe None
       }
@@ -211,7 +212,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
           await(result) mustBe empty
 
@@ -244,7 +245,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               Some("U0582898ZZ2G4F88AAG")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
           result.futureValue mustBe None
 
@@ -276,7 +277,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               Some("SA400")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
           result.futureValue mustBe None
 
@@ -324,7 +325,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
           GmcPrintResponse(
@@ -356,7 +357,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
           GmcPrintResponse(UNAUTHORIZED, "Authentication information is missing or invalid")
@@ -388,7 +389,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(GmcPrintResponse(FORBIDDEN, "Forbidden"))
 
@@ -418,7 +419,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
           GmcPrintResponse(REQUEST_TIMEOUT, "Timeout")
@@ -450,7 +451,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
           GmcPrintResponse(NOT_FOUND, "Not found")
@@ -493,7 +494,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
           GmcPrintResponse(INTERNAL_SERVER_ERROR, "server error occurred due to network congestion")
@@ -536,7 +537,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
           GmcPrintResponse(SERVICE_UNAVAILABLE, "service is unavailable due to network layer is down")
@@ -576,7 +577,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
         result.futureValue mustBe Some(
           GmcPrintResponse(NOT_IMPLEMENTED, UNKNOWN_HIP_ERROR)
@@ -634,7 +635,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
           await(result) mustBe empty
 
@@ -689,7 +690,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
           await(result) mustBe empty
 
@@ -734,7 +735,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
           await(result) mustBe empty
 
@@ -779,7 +780,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
           await(result) mustBe empty
 
@@ -838,7 +839,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
           await(result) mustBe empty
 
@@ -885,7 +886,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
 
           val resultValue: Option[GmcPrintResponse] = await(result)
 
@@ -941,7 +942,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       .configure(config)
       .build()
 
-    val eisConnector: EISConnector = application.injector.instanceOf[EISConnector]
+    val eisAndHipConnector: EISAndHIPConnector = application.injector.instanceOf[EISAndHIPConnector]
   }
 
   trait TestCaseWithHipEnabled {
@@ -965,7 +966,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       .configure(config)
       .build()
 
-    val eisConnector: EISConnector = application.injector.instanceOf[EISConnector]
+    val eisAndHipConnector: EISAndHIPConnector = application.injector.instanceOf[EISAndHIPConnector]
   }
 
   trait TestCaseWithHipAndFallBackToEISEnabled {
@@ -990,7 +991,7 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
       .configure(config)
       .build()
 
-    val eisConnector: EISConnector = application.injector.instanceOf[EISConnector]
+    val eisAndHipConnector: EISAndHIPConnector = application.injector.instanceOf[EISAndHIPConnector]
   }
 
 }

@@ -19,7 +19,7 @@ package uk.gov.hmrc.externalmessageadapter.services
 import play.api.http.Status
 import play.api.{ Configuration, Logging }
 import play.api.libs.json.{ JsValue, Json }
-import uk.gov.hmrc.externalmessageadapter.connectors.EISConnector
+import uk.gov.hmrc.externalmessageadapter.connectors.EISAndHIPConnector
 import uk.gov.hmrc.externalmessageadapter.model.{ GmcPrintRequest, GmcPrintResponse }
 import uk.gov.hmrc.common.message.model.Message
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
@@ -38,7 +38,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 @Singleton
 class PaperNotificationService @Inject() (
   @Named("app-name") val appName: String,
-  eisConnector: EISConnector,
+  eisAndHipConnector: EISAndHIPConnector,
   auditConnector: AuditConnector,
   messageRepository: MongoMessageRepository,
   configuration: Configuration
@@ -67,7 +67,7 @@ class PaperNotificationService @Inject() (
       case Some(request) =>
         val correlationId = Util.uuidOfLength31
         (for {
-          created <- eisConnector.post(request, correlationId)
+          created <- eisAndHipConnector.post(request, correlationId)
           _ = logger warn s"Eventhub Processor $created"
           _ <- if (created.isEmpty) messageRepository.removeById(message.id) else Future.successful(false)
           _ = auditMessage(message, additionalDetails = detailsMap(request, correlationId) ++ responseDetails(created))

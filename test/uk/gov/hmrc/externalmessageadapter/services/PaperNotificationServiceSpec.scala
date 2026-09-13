@@ -32,7 +32,7 @@ import play.api.libs.json.Json
 import play.api.Configuration
 import uk.gov.hmrc.domain.{ HmrcMtdItsa, Nino, SaUtr }
 import uk.gov.hmrc.externalmessageadapter.MetricOrchestratorStub
-import uk.gov.hmrc.externalmessageadapter.connectors.EISConnector
+import uk.gov.hmrc.externalmessageadapter.connectors.EISAndHIPConnector
 import uk.gov.hmrc.externalmessageadapter.model._
 import uk.gov.hmrc.externalmessageadapter.util.MessageFixtures
 import uk.gov.hmrc.http.HeaderCarrier
@@ -51,13 +51,13 @@ class PaperNotificationServiceSpec
     extends PlaySpec with MockitoSugar with LoneElement with ScalaFutures with MetricOrchestratorStub
     with IntegrationPatience {
 
-  val auditConnector = mock[AuditConnector]
-  val eisConnector = mock[EISConnector]
+  val auditConnector: AuditConnector = mock[AuditConnector]
+  val eisAndHipConnector: EISAndHIPConnector = mock[EISAndHIPConnector]
 
   private val injector: Injector = new GuiceApplicationBuilder()
     .overrides(bind[MetricOrchestrator].toInstance(mockMetricOrchestrator))
     .overrides(bind[AuditConnector].toInstance(auditConnector))
-    .overrides(bind[EISConnector].toInstance(eisConnector))
+    .overrides(bind[EISAndHIPConnector].toInstance(eisAndHipConnector))
     .configure(
       "gmc.denylist"           -> List("SA999", "SA888"),
       "metrics.enabled"        -> "false",
@@ -73,7 +73,7 @@ class PaperNotificationServiceSpec
     val alertTime = Instant.now
 
     "audit the message and send hard copy request to GMC" in new TestCase {
-      when(eisConnector.post(any[GmcPrintRequest], any[String]))
+      when(eisAndHipConnector.post(any[GmcPrintRequest], any[String]))
         .thenReturn(Future.successful(None))
 
       val emailAddress = s"${UUID.randomUUID}@test.com"
@@ -114,7 +114,7 @@ class PaperNotificationServiceSpec
     }
 
     "audit the message and send hard copy request to GMC when the message has no body" in new TestCase {
-      when(eisConnector.post(any[GmcPrintRequest], any[String]))
+      when(eisAndHipConnector.post(any[GmcPrintRequest], any[String]))
         .thenReturn(Future.successful(None))
 
       val emailAddress = s"${UUID.randomUUID}@test.com"
@@ -155,8 +155,8 @@ class PaperNotificationServiceSpec
     }
 
     "pass on formId, when it exist" in new TestCase {
-      reset(eisConnector)
-      when(eisConnector.post(any[GmcPrintRequest], any[String]))
+      reset(eisAndHipConnector)
+      when(eisAndHipConnector.post(any[GmcPrintRequest], any[String]))
         .thenReturn(Future.successful(None))
 
       val emailAddress = s"${UUID.randomUUID}@test.com"
@@ -179,13 +179,13 @@ class PaperNotificationServiceSpec
 
       private val gmcPrintRequestCaptor: ArgumentCaptor[GmcPrintRequest] =
         ArgumentCaptor.forClass(classOf[GmcPrintRequest])
-      verify(eisConnector).post(gmcPrintRequestCaptor.capture(), any[String])
+      verify(eisAndHipConnector).post(gmcPrintRequestCaptor.capture(), any[String])
       gmcPrintRequestCaptor.getValue.formId must be(Some(form.filterNot(_.isWhitespace)))
     }
 
     "pass on properties, when they exist" in new TestCase {
-      reset(eisConnector)
-      when(eisConnector.post(any[GmcPrintRequest], any[String]))
+      reset(eisAndHipConnector)
+      when(eisAndHipConnector.post(any[GmcPrintRequest], any[String]))
         .thenReturn(Future.successful(None))
 
       val emailAddress = s"${UUID.randomUUID}@test.com"
@@ -208,13 +208,13 @@ class PaperNotificationServiceSpec
 
       private val gmcPrintRequestCaptor: ArgumentCaptor[GmcPrintRequest] =
         ArgumentCaptor.forClass(classOf[GmcPrintRequest])
-      verify(eisConnector).post(gmcPrintRequestCaptor.capture(), any[String])
+      verify(eisAndHipConnector).post(gmcPrintRequestCaptor.capture(), any[String])
       gmcPrintRequestCaptor.getValue.properties must be(properties)
     }
 
     "do nothing, when the message as no source data" in new TestCase {
-      reset(eisConnector)
-      when(eisConnector.post(any[GmcPrintRequest], any[String]))
+      reset(eisAndHipConnector)
+      when(eisAndHipConnector.post(any[GmcPrintRequest], any[String]))
         .thenReturn(Future.successful(None))
 
       val emailAddress = s"${UUID.randomUUID}@test.com"
@@ -236,12 +236,12 @@ class PaperNotificationServiceSpec
       actual mustBe None
 
       private val gmcPrintRequestCaptor = ArgumentCaptor.forClass(classOf[GmcPrintRequest])
-      verify(eisConnector, never()).post(gmcPrintRequestCaptor.capture(), any[String])
+      verify(eisAndHipConnector, never()).post(gmcPrintRequestCaptor.capture(), any[String])
     }
 
     "audit the message even if hard copy request to GMC fails" in new TestCase {
       val testException = new Exception("test")
-      when(eisConnector.post(any[GmcPrintRequest], any[String]))
+      when(eisAndHipConnector.post(any[GmcPrintRequest], any[String]))
         .thenReturn(Future.failed(testException))
 
       val emailAddress = s"${UUID.randomUUID}@test.com"
@@ -286,7 +286,7 @@ class PaperNotificationServiceSpec
     when(auditConnector.sendEvent(any[DataEvent])(any[HeaderCarrier], any[ExecutionContext]))
       .thenAnswer(new EISSendEventAnswer(dataEvents))
 
-    when(eisConnector.post(any[GmcPrintRequest], any[String]))
+    when(eisAndHipConnector.post(any[GmcPrintRequest], any[String]))
       .thenReturn(Future.successful(None))
 
     lazy val service: PaperNotificationService =

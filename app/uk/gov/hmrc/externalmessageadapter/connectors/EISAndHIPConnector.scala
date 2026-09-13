@@ -40,7 +40,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
 @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
-class EISConnector @Inject() (
+class EISAndHIPConnector @Inject() (
   httpClient: HttpClientV2,
   servicesConfig: ServicesConfig,
   @Named("bouncebackFormIds") bouncebackFormIds: Seq[String]
