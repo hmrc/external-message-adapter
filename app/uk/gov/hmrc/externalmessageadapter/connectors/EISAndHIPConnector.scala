@@ -60,7 +60,7 @@ class EISAndHIPConnector @Inject() (
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(EMPTY_STRING)) && isHipProcessingEnabled) {
-      processRequestOverHIP(gmcPrintRequest).flatten
+      processRequestOverHIP(gmcPrintRequest, correlationId).flatten
     } else {
       processRequestOverEIS(gmcPrintRequest, correlationId)
     }
@@ -73,7 +73,6 @@ class EISAndHIPConnector @Inject() (
     val eisBearerToken = servicesConfig.getString("microservice.services.eis.bearer-token")
     val eisEndpoint = servicesConfig.getString("microservice.services.eis.endpoint")
     val eisEnvironment = servicesConfig.getString("microservice.services.eis.environment")
-
     val eisEndPointUrl = s"$eisBaseUrl$eisEndpoint"
 
     httpClient
@@ -116,7 +115,8 @@ class EISAndHIPConnector @Inject() (
     bouncebackFormIds.contains(formId.toUpperCase)
 
   private def processRequestOverHIP(
-    gmcPrintRequest: GmcPrintRequest
+    gmcPrintRequest: GmcPrintRequest,
+    correlationId: String
   )(implicit hc: HeaderCarrier): Future[Future[Option[GmcPrintResponse]]] = {
     val hipBaseUrl = servicesConfig.baseUrl("hip")
     val hipClientId = servicesConfig.getString("microservice.services.hip.email-bounce-back.client-id")
@@ -124,7 +124,6 @@ class EISAndHIPConnector @Inject() (
     val hipEndpoint = servicesConfig.getString("microservice.services.hip.email-bounce-back.endPoint")
 
     val hipEndPointUrl = s"$hipBaseUrl$hipEndpoint"
-    val correlationId = uuidOfLength32
     val authToken = encodeStringToBase64(s"$hipClientId$COLON$hipClientSecret")
 
     httpClient

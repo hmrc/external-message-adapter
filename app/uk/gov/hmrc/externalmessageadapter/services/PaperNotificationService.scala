@@ -24,8 +24,9 @@ import uk.gov.hmrc.externalmessageadapter.model.{ GmcPrintRequest, GmcPrintRespo
 import uk.gov.hmrc.common.message.model.Message
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
 import uk.gov.hmrc.externalmessageadapter.utils.Util
+import uk.gov.hmrc.externalmessageadapter.utils.Util.EMPTY_STRING
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.audit.AuditExtensions._
+import uk.gov.hmrc.play.audit.AuditExtensions.*
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{ Audit, DataEvent, EventTypes }
 
@@ -41,7 +42,8 @@ class PaperNotificationService @Inject() (
   eisAndHipConnector: EISAndHIPConnector,
   auditConnector: AuditConnector,
   messageRepository: MongoMessageRepository,
-  configuration: Configuration
+  configuration: Configuration,
+  @Named("bouncebackFormIds") bouncebackFormIds: Seq[String]
 ) extends Logging {
 
   lazy val audit: Audit = new Audit(appName, auditConnector)
@@ -65,7 +67,9 @@ class PaperNotificationService @Inject() (
         }
 
       case Some(request) =>
-        val correlationId = Util.uuidOfLength31
+        // correlationId is of different format for EIS and HIP
+        val correlationId = uuidToBeUsedForTheRequest(request.formId)
+
         (for {
           created <- eisAndHipConnector.post(request, correlationId)
           _ = logger warn s"Eventhub Processor $created"
@@ -148,4 +152,14 @@ class PaperNotificationService @Inject() (
 
   lazy val handleBounce: Boolean =
     configuration.getOptional[Boolean]("handle.bounce.eventhub").getOrElse(false)
+
+  private def uuidToBeUsedForTheRequest(formId: Option[String]) =
+    if (isFormIdEligibleToBeProcessedByHIP(formId.getOrElse(EMPTY_STRING))) {
+      Util.uuidOfLength32
+    } else {
+      Util.uuidOfLength31
+    }
+
+  private def isFormIdEligibleToBeProcessedByHIP(formId: String): Boolean =
+    bouncebackFormIds.contains(formId.toUpperCase)
 }
