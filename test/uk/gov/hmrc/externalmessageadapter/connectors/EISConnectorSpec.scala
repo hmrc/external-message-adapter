@@ -932,10 +932,11 @@ class EISConnectorSpec extends SpecBase with GuiceOneAppPerSuite with WireMockSu
     val mockServiceConfig: ServicesConfig = mock[ServicesConfig]
     val application: Application = new GuiceApplicationBuilder()
       .configure(
-        "play.filters.csp.nonce.enabled"        -> false,
-        "auditing.enabled"                      -> "false",
-        "microservice.metrics.graphite.enabled" -> "false",
-        "metrics.enabled"                       -> "false"
+        "play.filters.csp.nonce.enabled"                      -> false,
+        "auditing.enabled"                                    -> "false",
+        "microservice.metrics.graphite.enabled"               -> "false",
+        "metrics.enabled"                                     -> "false",
+        "microservice.services.hip.email-bounce-back.enabled" -> false
       )
       .configure(config)
       .build()
