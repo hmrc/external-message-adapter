@@ -192,7 +192,7 @@ class EISAndHIPConnector @Inject() (
 
     logErrorForEISFallBackScenario(resp.status, correlationIdForEIS)
 
-    processRequestOverEIS(gmcPrintRequest.copy(externalRefId = None), correlationIdForEIS)
+    processRequestOverEIS(gmcPrintRequest, correlationIdForEIS)
   }
 
   private def processHIPResponse(resp: HttpResponse) =
