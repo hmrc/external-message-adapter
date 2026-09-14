@@ -53,7 +53,7 @@ class EISAndHIPConnector @Inject() (
   def post(
     gmcPrintRequest: GmcPrintRequest,
     correlationId: String,
-    hodsName: String = EIS
+    processingPlatform: String = EIS
   ): Future[Option[GmcPrintResponse]] = {
     logger.debug(
       s"EventHub Processor: CorrelationId - $correlationId with gmcPrintRequest details for ${gmcPrintRequest.reason}"
@@ -61,7 +61,7 @@ class EISAndHIPConnector @Inject() (
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
-    if (hodsName == HIP) {
+    if (processingPlatform == HIP) {
       processRequestOverHIP(gmcPrintRequest, correlationId).flatten
     } else {
       processRequestOverEIS(gmcPrintRequest, correlationId)

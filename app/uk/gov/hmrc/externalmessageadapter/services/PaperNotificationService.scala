@@ -75,7 +75,7 @@ class PaperNotificationService @Inject() (
             eisAndHipConnector.post(
               request,
               correlationId,
-              hodsNameToProcessRequest(request.formId.getOrElse(EMPTY_STRING))
+              platformNameToProcessRequest(request.formId.getOrElse(EMPTY_STRING))
             )
           _ = logger warn s"Eventhub Processor $created"
           _ <- if (created.isEmpty) messageRepository.removeById(message.id) else Future.successful(false)
@@ -164,11 +164,11 @@ class PaperNotificationService @Inject() (
   private def isFormIdEligibleToBeProcessedByHIP(formId: String): Boolean =
     bouncebackFormIds.contains(formId.toUpperCase)
 
-  private def hodsNameToProcessRequest(formId: String) =
+  private def platformNameToProcessRequest(formId: String) =
     if (isFormIdEligibleToBeProcessedByHIP(formId) && isHipProcessingEnabled) HIP else EIS
 
   private def uuidToBeUsedForTheRequest(formId: Option[String]) =
-    if (hodsNameToProcessRequest(formId.getOrElse(EMPTY_STRING)) == HIP) {
+    if (platformNameToProcessRequest(formId.getOrElse(EMPTY_STRING)) == HIP) {
       Util.uuidOfLength32
     } else {
       Util.uuidOfLength31

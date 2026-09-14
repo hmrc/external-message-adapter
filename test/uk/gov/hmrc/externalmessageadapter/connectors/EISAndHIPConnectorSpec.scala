@@ -173,7 +173,7 @@ class EISAndHIPConnectorSpec
 
     "send request to correct endpoint" when {
 
-      "hip.email-bounce-back is disabled and hodsName is EIS" in new TestCaseWithHipDisabled {
+      "hip.email-bounce-back is disabled and processingPlatform is EIS" in new TestCaseWithHipDisabled {
         val expectedResponse = """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
 
         wireMockServer.stubFor(
@@ -191,7 +191,7 @@ class EISAndHIPConnectorSpec
         result.futureValue mustBe None
       }
 
-      "hip.email-bounce-back is disabled, hodsName is EIS and formId is" +
+      "hip.email-bounce-back is disabled, processingPlatform is EIS and formId is" +
         " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipDisabled {
           val expectedResponse =
             """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
@@ -220,7 +220,7 @@ class EISAndHIPConnectorSpec
           verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
         }
 
-      "hip.email-bounce-back is enabled, hodsName is HIP and formId is" +
+      "hip.email-bounce-back is enabled, processingPlatform is HIP and formId is" +
         " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipEnabled {
 
           wireMockServer.stubFor(
@@ -253,7 +253,7 @@ class EISAndHIPConnectorSpec
           verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
         }
 
-      "hip.email-bounce-back is enabled, hodsName is EIS and formId is not" +
+      "hip.email-bounce-back is enabled, processingPlatform is EIS and formId is not" +
         " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipEnabled {
           val expectedResponse =
             """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
@@ -588,7 +588,7 @@ class EISAndHIPConnectorSpec
       }
     }
 
-    "hodsName is HIP, retry the request over EIS and get 200 response" when {
+    "processingPlatform is HIP, retry the request over EIS and get 200 response" when {
       "hip.email-bounce-back and fallBack to EIS are enabled, request is sent to hip endpoint," +
         " and HIP sends SERVICE_UNAVAILABLE response" in new TestCaseWithHipAndFallBackToEISEnabled {
           val expectedHIPResponse: String =
@@ -849,7 +849,7 @@ class EISAndHIPConnectorSpec
         }
     }
 
-    "hodsName is HIP, retry the request over EIS and gets error response from EIS endPoint" when {
+    "processingPlatform is HIP, retry the request over EIS and gets error response from EIS endPoint" when {
       "hip.email-bounce-back and fallBack to EIS are enabled, request is sent to hip endpoint," +
         " and HIP sends FORBIDDEN response" in new TestCaseWithHipAndFallBackToEISEnabled {
           val expectedHIPResponse: String =
