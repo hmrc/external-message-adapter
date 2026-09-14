@@ -319,6 +319,34 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
         verifyExactlyOneEndPointUrlHit(hipEndPoint, WIREMOCK_POST)
       }
 
+      " is to be send over HIP and request fails in schema validation" in new TestCaseWithHipEnabled {
+
+        import EventHubEvent.formats
+
+        val updatedEvent: EventBody = eventHubEvent.event.copy(emailAddress = "invalidemail.com")
+
+        val request = FakeRequest(
+          POST,
+          "/message-process-eventhub-events",
+          FakeHeaders(),
+          Json.toJson(eventHubEvent.copy(event = updatedEvent))
+        )
+
+        val expectedResponse: String = """{"message":"Forbidden"}""".stripMargin
+
+        when(mockMessagesUtil.auditMessageDeliveryStatus(any)(any)).thenReturn(Future.successful(Success))
+        when(mockMsgRepository.findByExternalRefId(any[String])).thenReturn(Future.successful(Option(MSG)))
+
+        when(mockMsgRepository.removeById(any)).thenReturn(Future.successful(true))
+
+        val result: Future[Result] = route(application, request).head
+        val failedFuture: Future[Throwable] = result.failed
+
+        failedFuture.futureValue.getMessage mustBe "Schema validation failed for the GmcPrintRequest due to error" +
+          " :: (/emailAddress: ECMA 262 regex \"^[^@\\s]{1,64}@[^@\\s]{1,255}$\" does not" +
+          " match input string \"invalidemail.com\"):::(/emailAddress: string \"invalidemail.com\" is not a valid email address)"
+      }
+
       "event is BounceEvent and paper notification is to be send over EIS" +
         " but upstream response is of INTERNAL_SERVER_ERROR" in new TestCaseWithHipDisabled {
 

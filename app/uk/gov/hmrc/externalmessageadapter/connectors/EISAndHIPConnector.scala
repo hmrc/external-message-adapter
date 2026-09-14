@@ -25,11 +25,11 @@ import play.api.http.Status.{ BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT
 import play.api.libs.json.Json
 import uk.gov.hmrc.externalmessageadapter.model.{ EmailBounce4xxResponse, EmailBounceBackResponseBody, GmcPrintRequest, GmcPrintResponse, GmcPrintResponseBody }
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse, StringContextOps }
+import uk.gov.hmrc.http.{ BadRequestException, HeaderCarrier, HttpResponse, StringContextOps }
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import play.api.libs.ws.writeableOf_JsValue
-import uk.gov.hmrc.externalmessageadapter.utils.Util
+import uk.gov.hmrc.externalmessageadapter.utils.{ JSONSchemaValidator, Util }
 import uk.gov.hmrc.externalmessageadapter.utils.Util.*
 
 import java.net.URI
@@ -37,6 +37,8 @@ import java.time.format.DateTimeFormatter
 import java.time.{ ZoneOffset, ZonedDateTime }
 import javax.inject.{ Inject, Named, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.Try
+import scala.util.{ Failure, Success }
 
 @Singleton
 @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
@@ -62,9 +64,27 @@ class EISAndHIPConnector @Inject() (
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     if (processingPlatform == HIP) {
-      processRequestOverHIP(gmcPrintRequest, correlationId).flatten
+      validateAndProcessRequestOverHIP(gmcPrintRequest, correlationId)
     } else {
       processRequestOverEIS(gmcPrintRequest, correlationId)
+    }
+  }
+
+  private def validateAndProcessRequestOverHIP(gmcPrintRequest: GmcPrintRequest, correlationId: String)(implicit
+    hc: HeaderCarrier
+  ) = {
+    val schemaValidator = new JSONSchemaValidator()
+    val validationResult =
+      schemaValidator.validatePayload(Json.toJson(gmcPrintRequest), schemaValidator.emailBounceBackSchema)
+
+    validationResult match {
+      case Success(_) => processRequestOverHIP(gmcPrintRequest, correlationId).flatten
+      case Failure(exception) =>
+        Future.failed(
+          BadRequestException(
+            s"Schema validation failed for the GmcPrintRequest due to error :: ${exception.getMessage}"
+          )
+        )
     }
   }
 

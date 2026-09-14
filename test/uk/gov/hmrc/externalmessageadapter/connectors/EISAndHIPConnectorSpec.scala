@@ -31,7 +31,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.externalmessageadapter.model.{ GmcPrintRequest, GmcPrintResponse }
 import uk.gov.hmrc.externalmessageadapter.util.{ SpecBase, WireMockSupportProvider, WithWireMock }
 import uk.gov.hmrc.http.client.{ HttpClientV2, RequestBuilder }
-import uk.gov.hmrc.http.{ Authorization, HeaderCarrier, HttpReads, HttpResponse }
+import uk.gov.hmrc.http.{ Authorization, BadRequestException, HeaderCarrier, HttpReads, HttpResponse }
 import com.typesafe.config.ConfigFactory
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import com.github.tomakehurst.wiremock.client.WireMock.*
@@ -226,10 +226,11 @@ class EISAndHIPConnectorSpec
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("U0582898ZZ2G4F88AAG")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -239,7 +240,7 @@ class EISAndHIPConnectorSpec
           val reprintRequest: GmcPrintRequest =
             GmcPrintRequest(
               "EMAIL_BOUNCE",
-              "Some Hashed Data",
+              sourceData,
               "a@a.com",
               Some("CH(A)1700"),
               None,
@@ -256,12 +257,12 @@ class EISAndHIPConnectorSpec
       "hip.email-bounce-back is enabled, processingPlatform is EIS and formId is not" +
         " one of that are part of bounceback formIds (API 5951)" in new TestCaseWithHipEnabled {
           val expectedResponse =
-            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+            s"""{"reason":"EMAIL_BOUNCE","sourceData":$sourceData,"emailAddress":"a@a.com"}"""
 
           wireMockServer.stubFor(
             post(urlPathMatching(eisEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("SA400")))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
@@ -273,7 +274,7 @@ class EISAndHIPConnectorSpec
           val reprintRequest: GmcPrintRequest =
             GmcPrintRequest(
               "EMAIL_BOUNCE",
-              "Some Hashed Data",
+              sourceData,
               "a@a.com",
               Some("SA400")
             )
@@ -309,9 +310,10 @@ class EISAndHIPConnectorSpec
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
             .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
             .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -321,9 +323,10 @@ class EISAndHIPConnectorSpec
         val reprintRequest: GmcPrintRequest =
           GmcPrintRequest(
             reason = "EMAIL_BOUNCE",
-            sourceData = "Some Hashed Data",
+            sourceData = sourceData,
             emailAddress = "a@a.com",
-            formId = Some("CH(A)1708")
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId
           )
 
         val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -344,18 +347,20 @@ class EISAndHIPConnectorSpec
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
             .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
             .willReturn(jsonResponse(expectedResponse, UNAUTHORIZED))
         )
 
         val reprintRequest: GmcPrintRequest =
           GmcPrintRequest(
             reason = "EMAIL_BOUNCE",
-            sourceData = "Some Hashed Data",
+            sourceData = sourceData,
             emailAddress = "a@a.com",
-            formId = Some("CH(A)1708")
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId
           )
 
         val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -373,9 +378,10 @@ class EISAndHIPConnectorSpec
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
             .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
             .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -385,9 +391,10 @@ class EISAndHIPConnectorSpec
         val reprintRequest: GmcPrintRequest =
           GmcPrintRequest(
             reason = "EMAIL_BOUNCE",
-            sourceData = "Some Hashed Data",
+            sourceData = sourceData,
             emailAddress = "a@a.com",
-            formId = Some("CH(A)1708")
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId
           )
 
         val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -403,9 +410,10 @@ class EISAndHIPConnectorSpec
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
             .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
             .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -415,9 +423,10 @@ class EISAndHIPConnectorSpec
         val reprintRequest: GmcPrintRequest =
           GmcPrintRequest(
             reason = "EMAIL_BOUNCE",
-            sourceData = "Some Hashed Data",
+            sourceData = sourceData,
             emailAddress = "a@a.com",
-            formId = Some("CH(A)1708")
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId
           )
 
         val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -435,9 +444,10 @@ class EISAndHIPConnectorSpec
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
             .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
             .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -447,9 +457,10 @@ class EISAndHIPConnectorSpec
         val reprintRequest: GmcPrintRequest =
           GmcPrintRequest(
             reason = "EMAIL_BOUNCE",
-            sourceData = "Some Hashed Data",
+            sourceData = sourceData,
             emailAddress = "a@a.com",
-            formId = Some("CH(A)1708")
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId
           )
 
         val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -478,9 +489,10 @@ class EISAndHIPConnectorSpec
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
             .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
             .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -490,9 +502,10 @@ class EISAndHIPConnectorSpec
         val reprintRequest: GmcPrintRequest =
           GmcPrintRequest(
             reason = "EMAIL_BOUNCE",
-            sourceData = "Some Hashed Data",
+            sourceData = sourceData,
             emailAddress = "a@a.com",
-            formId = Some("CH(A)1708")
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId
           )
 
         val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -521,9 +534,10 @@ class EISAndHIPConnectorSpec
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
             .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
             .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -533,9 +547,10 @@ class EISAndHIPConnectorSpec
         val reprintRequest: GmcPrintRequest =
           GmcPrintRequest(
             reason = "EMAIL_BOUNCE",
-            sourceData = "Some Hashed Data",
+            sourceData = sourceData,
             emailAddress = "a@a.com",
-            formId = Some("CH(A)1708")
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId
           )
 
         val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -561,9 +576,10 @@ class EISAndHIPConnectorSpec
         wireMockServer.stubFor(
           post(urlPathMatching(hipEndPoint))
             .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-            .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+            .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
             .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+            .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
             .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -573,9 +589,10 @@ class EISAndHIPConnectorSpec
         val reprintRequest: GmcPrintRequest =
           GmcPrintRequest(
             reason = "EMAIL_BOUNCE",
-            sourceData = "Some Hashed Data",
+            sourceData = sourceData,
             emailAddress = "a@a.com",
-            formId = Some("CH(A)1708")
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId
           )
 
         val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -585,6 +602,43 @@ class EISAndHIPConnectorSpec
         )
 
         verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+      }
+
+      "request is sent to hip endpoint and schema validation fails for the request" in new TestCaseWithHipEnabled {
+
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = sourceData,
+            emailAddress = "invalidemail.com",
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
+
+        val failedFuture: Future[Throwable] = result.failed
+        failedFuture.futureValue.getMessage mustBe
+          "Schema validation failed for the GmcPrintRequest due to error" +
+          " :: (/emailAddress: ECMA 262 regex \"^[^@\\s]{1,64}@[^@\\s]{1,255}$\" does not match" +
+          " input string \"invalidemail.com\"):::(/emailAddress: string \"invalidemail.com\" is not a valid email address)"
+      }
+
+      "request is sent to hip endpoint and schema validation fails for required field missing" in new TestCaseWithHipEnabled {
+
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = sourceData,
+            emailAddress = "test@test.com",
+            formId = Some("CH(A)1708")
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
+        val failedFuture: Future[Throwable] = result.failed
+
+        failedFuture.futureValue.getMessage mustBe "Schema validation failed for the GmcPrintRequest due to error :: " +
+          "(: object has missing required properties ([\"externalRefId\"]))"
       }
     }
 
@@ -605,14 +659,15 @@ class EISAndHIPConnectorSpec
               |}""".stripMargin
 
           val expectedEISResponse =
-            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+            s"""{"reason":"EMAIL_BOUNCE","sourceData":$sourceData,"emailAddress":"a@a.com"}"""
 
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -622,7 +677,7 @@ class EISAndHIPConnectorSpec
           wireMockServer.stubFor(
             post(urlPathMatching(eisEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
               .willReturn(jsonResponse(expectedEISResponse, OK))
@@ -631,9 +686,10 @@ class EISAndHIPConnectorSpec
           val reprintRequest: GmcPrintRequest =
             GmcPrintRequest(
               reason = "EMAIL_BOUNCE",
-              sourceData = "Some Hashed Data",
+              sourceData = sourceData,
               emailAddress = "a@a.com",
-              formId = Some("CH(A)1708")
+              formId = Some("CH(A)1708"),
+              externalRefId = externalRefId
             )
 
           val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -660,14 +716,15 @@ class EISAndHIPConnectorSpec
               |}""".stripMargin
 
           val expectedEISResponse =
-            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+            s"""{"reason":"EMAIL_BOUNCE","sourceData":$sourceData,"emailAddress":"a@a.com"}"""
 
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -677,7 +734,7 @@ class EISAndHIPConnectorSpec
           wireMockServer.stubFor(
             post(urlPathMatching(eisEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
               .willReturn(jsonResponse(expectedEISResponse, OK))
@@ -686,9 +743,10 @@ class EISAndHIPConnectorSpec
           val reprintRequest: GmcPrintRequest =
             GmcPrintRequest(
               reason = "EMAIL_BOUNCE",
-              sourceData = "Some Hashed Data",
+              sourceData = sourceData,
               emailAddress = "a@a.com",
-              formId = Some("CH(A)1708")
+              formId = Some("CH(A)1708"),
+              externalRefId = externalRefId
             )
 
           val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -705,14 +763,15 @@ class EISAndHIPConnectorSpec
             """{"message":"Authentication information is missing or invalid"}""".stripMargin
 
           val expectedEISResponse =
-            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+            s"""{"reason":"EMAIL_BOUNCE","sourceData":$sourceData,"emailAddress":"a@a.com"}"""
 
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -722,7 +781,7 @@ class EISAndHIPConnectorSpec
           wireMockServer.stubFor(
             post(urlPathMatching(eisEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
               .willReturn(jsonResponse(expectedEISResponse, OK))
@@ -731,9 +790,10 @@ class EISAndHIPConnectorSpec
           val reprintRequest: GmcPrintRequest =
             GmcPrintRequest(
               reason = "EMAIL_BOUNCE",
-              sourceData = "Some Hashed Data",
+              sourceData = sourceData,
               emailAddress = "a@a.com",
-              formId = Some("CH(A)1708")
+              formId = Some("CH(A)1708"),
+              externalRefId = externalRefId
             )
 
           val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -750,14 +810,15 @@ class EISAndHIPConnectorSpec
             """{"message":"Forbidden"}""".stripMargin
 
           val expectedEISResponse =
-            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+            s"""{"reason":"EMAIL_BOUNCE","sourceData":$sourceData,"emailAddress":"a@a.com"}"""
 
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -767,7 +828,7 @@ class EISAndHIPConnectorSpec
           wireMockServer.stubFor(
             post(urlPathMatching(eisEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
               .willReturn(jsonResponse(expectedEISResponse, OK))
@@ -776,9 +837,10 @@ class EISAndHIPConnectorSpec
           val reprintRequest: GmcPrintRequest =
             GmcPrintRequest(
               reason = "EMAIL_BOUNCE",
-              sourceData = "Some Hashed Data",
+              sourceData = sourceData,
               emailAddress = "a@a.com",
-              formId = Some("CH(A)1708")
+              formId = Some("CH(A)1708"),
+              externalRefId = externalRefId
             )
 
           val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -809,14 +871,15 @@ class EISAndHIPConnectorSpec
               |}""".stripMargin
 
           val expectedEISResponse =
-            """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
+            s"""{"reason":"EMAIL_BOUNCE","sourceData":$sourceData,"emailAddress":"a@a.com"}"""
 
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -826,7 +889,7 @@ class EISAndHIPConnectorSpec
           wireMockServer.stubFor(
             post(urlPathMatching(eisEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
               .willReturn(jsonResponse(expectedEISResponse, OK))
@@ -835,9 +898,10 @@ class EISAndHIPConnectorSpec
           val reprintRequest: GmcPrintRequest =
             GmcPrintRequest(
               reason = "EMAIL_BOUNCE",
-              sourceData = "Some Hashed Data",
+              sourceData = sourceData,
               emailAddress = "a@a.com",
-              formId = Some("CH(A)1708")
+              formId = Some("CH(A)1708"),
+              externalRefId = externalRefId
             )
 
           val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -861,9 +925,10 @@ class EISAndHIPConnectorSpec
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -873,7 +938,7 @@ class EISAndHIPConnectorSpec
           wireMockServer.stubFor(
             post(urlPathMatching(eisEndPoint))
               .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo("Some Hashed Data")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
               .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1708")))
               .willReturn(jsonResponse(expectedEISResponse, INTERNAL_SERVER_ERROR))
@@ -882,9 +947,10 @@ class EISAndHIPConnectorSpec
           val reprintRequest: GmcPrintRequest =
             GmcPrintRequest(
               reason = "EMAIL_BOUNCE",
-              sourceData = "Some Hashed Data",
+              sourceData = sourceData,
               emailAddress = "a@a.com",
-              formId = Some("CH(A)1708")
+              formId = Some("CH(A)1708"),
+              externalRefId = externalRefId
             )
 
           val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
@@ -952,6 +1018,9 @@ class EISAndHIPConnectorSpec
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
 
+    val externalRefId = Some("U0582898ZZ2G4F88AAG")
+    val sourceData = "U29tZSBIYXNoZWQgRGF0YQ=="
+
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
     implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
@@ -975,6 +1044,9 @@ class EISAndHIPConnectorSpec
     val hipEndPoint = "/ccmp/emailbounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
+
+    val externalRefId = Some("U0582898ZZ2G4F88AAG")
+    val sourceData = "U29tZSBIYXNoZWQgRGF0YQ=="
 
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
     implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
