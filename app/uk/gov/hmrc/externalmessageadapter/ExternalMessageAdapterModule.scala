@@ -101,10 +101,4 @@ class ExternalMessageAdapterModule extends AbstractModule with ScalaModule with 
   @Singleton
   def denyListedFormIds(configuration: Configuration): Seq[String] =
     configuration.getOptional[Seq[String]]("gmc.denylist").getOrElse(Seq())
-
-  @Provides
-  @Named("bouncebackFormIds")
-  @Singleton
-  def bouncebackFormIds(configuration: Configuration): Seq[String] =
-    configuration.getOptional[Seq[String]]("bounceback.formIds").getOrElse(Seq())
 }

@@ -42,8 +42,7 @@ class PaperNotificationService @Inject() (
   eisAndHipConnector: EISAndHIPConnector,
   auditConnector: AuditConnector,
   messageRepository: MongoMessageRepository,
-  configuration: Configuration,
-  @Named("bouncebackFormIds") bouncebackFormIds: Seq[String]
+  configuration: Configuration
 ) extends Logging {
 
   lazy val audit: Audit = new Audit(appName, auditConnector)
@@ -161,8 +160,11 @@ class PaperNotificationService @Inject() (
   private lazy val isHipProcessingEnabled: Boolean =
     configuration.getOptional[Boolean]("microservice.services.hip.email-bounce-back.enabled").getOrElse(false)
 
+  private lazy val emailBounceBackFormIds: Seq[String] =
+    configuration.getOptional[Seq[String]]("microservice.services.hip.email-bounce-back.formIds").getOrElse(Seq())
+
   private def isFormIdEligibleToBeProcessedByHIP(formId: String): Boolean =
-    bouncebackFormIds.contains(formId.toUpperCase)
+    emailBounceBackFormIds.contains(formId.toUpperCase)
 
   private def platformNameToProcessRequest(formId: String) =
     if (isFormIdEligibleToBeProcessedByHIP(formId) && isHipProcessingEnabled) HIP else EIS

@@ -16,14 +16,10 @@
 
 package uk.gov.hmrc.externalmessageadapter
 
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Configuration
-import play.api.inject.guice.GuiceApplicationBuilder
-
 import java.time.Instant
 import uk.gov.hmrc.externalmessageadapter.util.SpecBase
 
-class ExternalMessageAdapterSpec extends SpecBase with GuiceOneAppPerSuite {
+class ExternalMessageAdapterSpec extends SpecBase {
 
   "ExternalMessageAdapterModule" must {
     val externalMsgAdapterModule = new ExternalMessageAdapterModule
@@ -31,19 +27,6 @@ class ExternalMessageAdapterSpec extends SpecBase with GuiceOneAppPerSuite {
     "systemTimeSourceProvider create TimeSource with current date" in {
       val now = Instant.now
       externalMsgAdapterModule.systemTimeSourceProvider().now().isAfter(now.minusSeconds(1)) mustBe true
-    }
-
-    "return the bounceback formIds" in {
-      val app = new GuiceApplicationBuilder()
-        .configure(
-          "auditing.enabled"                      -> "false",
-          "microservice.metrics.graphite.enabled" -> "false",
-          "metrics.enabled"                       -> "false"
-        )
-        .build()
-      val config = app.injector.instanceOf[Configuration]
-
-      externalMsgAdapterModule.bouncebackFormIds(config) mustBe Seq("CH(A)1700", "CH(A)1708")
     }
   }
 }

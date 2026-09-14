@@ -330,7 +330,7 @@ class PaperNotificationServiceSpec
       }
 
       "formId is of API 5951, hip processing is enabled but" +
-        " bouncebackFormIds is empty" in new TestCaseWithEmptyBounceBackFormIdsAndHipEnabled {
+        " bounceback formIds is empty" in new TestCaseWithEmptyBounceBackFormIdsAndHipEnabled {
           val formId = "CH(A)1708"
           reset(mockEisAndHipConnector)
           when(mockEisAndHipConnector.post(any[GmcPrintRequest](), any[String](), ArgumentMatchers.eq(EIS)))
@@ -448,7 +448,7 @@ class PaperNotificationServiceSpec
       .overrides(bind[EISAndHIPConnector].toInstance(mockEisAndHipConnector))
       .configure(
         "gmc.denylist"                                        -> List("SA999", "SA888"),
-        "bounceback.formIds"                                  -> List("CH(A)1700", "CH(A)1708"),
+        "microservice.services.hip.email-bounce-back.formIds" -> List("CH(A)1700", "CH(A)1708"),
         "metrics.enabled"                                     -> "false",
         "handle.bounce.eventhub"                              -> "true",
         "microservice.services.hip.email-bounce-back.enabled" -> true
@@ -481,7 +481,7 @@ class PaperNotificationServiceSpec
       .overrides(bind[EISAndHIPConnector].toInstance(mockEisAndHipConnector))
       .configure(
         "gmc.denylist"                                        -> List("SA999", "SA888"),
-        "bounceback.formIds"                                  -> List(),
+        "microservice.services.hip.email-bounce-back.formIds" -> List(),
         "metrics.enabled"                                     -> "false",
         "handle.bounce.eventhub"                              -> "true",
         "microservice.services.hip.email-bounce-back.enabled" -> true
@@ -513,7 +513,7 @@ class PaperNotificationServiceSpec
       .overrides(bind[EISAndHIPConnector].toInstance(mockEisAndHipConnector))
       .configure(
         "gmc.denylist"                                        -> List("SA999", "SA888"),
-        "bounceback.formIds"                                  -> List("CH(A)1700", "CH(A)1708"),
+        "microservice.services.hip.email-bounce-back.formIds" -> List("CH(A)1700", "CH(A)1708"),
         "metrics.enabled"                                     -> "false",
         "handle.bounce.eventhub"                              -> "true",
         "microservice.services.hip.email-bounce-back.enabled" -> false

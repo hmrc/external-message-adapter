@@ -192,7 +192,7 @@ class EISAndHIPConnectorSpec
       }
 
       "hip.email-bounce-back is disabled, processingPlatform is EIS and formId is" +
-        " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipDisabled {
+        " one of that are part of bounceback formIds (API 5951)" in new TestCaseWithHipDisabled {
           val expectedResponse =
             """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
 
@@ -221,7 +221,7 @@ class EISAndHIPConnectorSpec
         }
 
       "hip.email-bounce-back is enabled, processingPlatform is HIP and formId is" +
-        " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipEnabled {
+        " one of that are part of bounceback formIds (API 5951)" in new TestCaseWithHipEnabled {
 
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
@@ -254,7 +254,7 @@ class EISAndHIPConnectorSpec
         }
 
       "hip.email-bounce-back is enabled, processingPlatform is EIS and formId is not" +
-        " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipEnabled {
+        " one of that are part of bounceback formIds (API 5951)" in new TestCaseWithHipEnabled {
           val expectedResponse =
             """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
 
