@@ -30,6 +30,9 @@ object Util {
   val THREE_COLONS = ":::"
   val ORIGIN_HIP_ERROR_MSG_PREFIX = "Origin:::HIP"
 
+  val EIS = "EIS"
+  val HIP = "HIP"
+
   def uuidOfLength31: String =
     UUID
       .randomUUID()

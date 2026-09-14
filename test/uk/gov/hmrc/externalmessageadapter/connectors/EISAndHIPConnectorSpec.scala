@@ -40,6 +40,7 @@ import play.api.libs.json.Json
 import com.github.tomakehurst.wiremock.http.RequestMethod.POST
 import uk.gov.hmrc.externalmessageadapter.model.GmcPrintResponse.UNKNOWN_HIP_ERROR
 import play.api.test.Helpers.*
+import uk.gov.hmrc.externalmessageadapter.utils.Util.{ EIS, HIP }
 
 import java.net.URL
 import scala.concurrent.{ ExecutionContext, Future }
@@ -172,7 +173,7 @@ class EISAndHIPConnectorSpec
 
     "send request to correct endpoint" when {
 
-      "hip.email-bounce-back is disabled" in new TestCaseWithHipDisabled {
+      "hip.email-bounce-back is disabled and hodsName is EIS" in new TestCaseWithHipDisabled {
         val expectedResponse = """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
 
         wireMockServer.stubFor(
@@ -190,7 +191,7 @@ class EISAndHIPConnectorSpec
         result.futureValue mustBe None
       }
 
-      "hip.email-bounce-back is disabled and formId is" +
+      "hip.email-bounce-back is disabled, hodsName is EIS and formId is" +
         " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipDisabled {
           val expectedResponse =
             """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
@@ -219,7 +220,7 @@ class EISAndHIPConnectorSpec
           verifyExactlyOneEndPointUrlHit(eisEndPoint, POST)
         }
 
-      "hip.email-bounce-back is enabled and formId is" +
+      "hip.email-bounce-back is enabled, hodsName is HIP and formId is" +
         " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipEnabled {
 
           wireMockServer.stubFor(
@@ -245,14 +246,14 @@ class EISAndHIPConnectorSpec
               Some("U0582898ZZ2G4F88AAG")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
           result.futureValue mustBe None
 
           verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
         }
 
-      "hip.email-bounce-back is enabled and formId is not" +
+      "hip.email-bounce-back is enabled, hodsName is EIS and formId is not" +
         " one of that are part of bounceback.formIds (API 5951)" in new TestCaseWithHipEnabled {
           val expectedResponse =
             """{"reason":"EMAIL_BOUNCE","sourceData":"Some Hashed Data","emailAddress":"a@a.com"}"""
@@ -325,7 +326,7 @@ class EISAndHIPConnectorSpec
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
         result.futureValue mustBe Some(
           GmcPrintResponse(
@@ -357,7 +358,7 @@ class EISAndHIPConnectorSpec
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
         result.futureValue mustBe Some(
           GmcPrintResponse(UNAUTHORIZED, "Authentication information is missing or invalid")
@@ -389,7 +390,7 @@ class EISAndHIPConnectorSpec
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
         result.futureValue mustBe Some(GmcPrintResponse(FORBIDDEN, "Forbidden"))
 
@@ -419,7 +420,7 @@ class EISAndHIPConnectorSpec
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
         result.futureValue mustBe Some(
           GmcPrintResponse(REQUEST_TIMEOUT, "Timeout")
@@ -451,7 +452,7 @@ class EISAndHIPConnectorSpec
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
         result.futureValue mustBe Some(
           GmcPrintResponse(NOT_FOUND, "Not found")
@@ -494,7 +495,7 @@ class EISAndHIPConnectorSpec
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
         result.futureValue mustBe Some(
           GmcPrintResponse(INTERNAL_SERVER_ERROR, "server error occurred due to network congestion")
@@ -537,7 +538,7 @@ class EISAndHIPConnectorSpec
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
         result.futureValue mustBe Some(
           GmcPrintResponse(SERVICE_UNAVAILABLE, "service is unavailable due to network layer is down")
@@ -577,7 +578,7 @@ class EISAndHIPConnectorSpec
             formId = Some("CH(A)1708")
           )
 
-        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
         result.futureValue mustBe Some(
           GmcPrintResponse(NOT_IMPLEMENTED, UNKNOWN_HIP_ERROR)
@@ -587,7 +588,7 @@ class EISAndHIPConnectorSpec
       }
     }
 
-    "retry the request over EIS and get 200 response" when {
+    "hodsName is HIP, retry the request over EIS and get 200 response" when {
       "hip.email-bounce-back and fallBack to EIS are enabled, request is sent to hip endpoint," +
         " and HIP sends SERVICE_UNAVAILABLE response" in new TestCaseWithHipAndFallBackToEISEnabled {
           val expectedHIPResponse: String =
@@ -635,7 +636,7 @@ class EISAndHIPConnectorSpec
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
           await(result) mustBe empty
 
@@ -690,7 +691,7 @@ class EISAndHIPConnectorSpec
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
           await(result) mustBe empty
 
@@ -735,7 +736,7 @@ class EISAndHIPConnectorSpec
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
           await(result) mustBe empty
 
@@ -780,7 +781,7 @@ class EISAndHIPConnectorSpec
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
           await(result) mustBe empty
 
@@ -839,7 +840,7 @@ class EISAndHIPConnectorSpec
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
           await(result) mustBe empty
 
@@ -848,7 +849,7 @@ class EISAndHIPConnectorSpec
         }
     }
 
-    "retry the request over EIS and gets error response from EIS endPoint" when {
+    "hodsName is HIP, retry the request over EIS and gets error response from EIS endPoint" when {
       "hip.email-bounce-back and fallBack to EIS are enabled, request is sent to hip endpoint," +
         " and HIP sends FORBIDDEN response" in new TestCaseWithHipAndFallBackToEISEnabled {
           val expectedHIPResponse: String =
@@ -886,7 +887,7 @@ class EISAndHIPConnectorSpec
               formId = Some("CH(A)1708")
             )
 
-          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId")
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
 
           val resultValue: Option[GmcPrintResponse] = await(result)
 

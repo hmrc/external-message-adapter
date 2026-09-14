@@ -24,7 +24,7 @@ import uk.gov.hmrc.externalmessageadapter.model.{ GmcPrintRequest, GmcPrintRespo
 import uk.gov.hmrc.common.message.model.Message
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
 import uk.gov.hmrc.externalmessageadapter.utils.Util
-import uk.gov.hmrc.externalmessageadapter.utils.Util.EMPTY_STRING
+import uk.gov.hmrc.externalmessageadapter.utils.Util.{ EIS, EMPTY_STRING, HIP }
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.AuditExtensions.*
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -71,7 +71,12 @@ class PaperNotificationService @Inject() (
         val correlationId = uuidToBeUsedForTheRequest(request.formId)
 
         (for {
-          created <- eisAndHipConnector.post(request, correlationId)
+          created <-
+            eisAndHipConnector.post(
+              request,
+              correlationId,
+              hodsNameToProcessRequest(request.formId.getOrElse(EMPTY_STRING))
+            )
           _ = logger warn s"Eventhub Processor $created"
           _ <- if (created.isEmpty) messageRepository.removeById(message.id) else Future.successful(false)
           _ = auditMessage(message, additionalDetails = detailsMap(request, correlationId) ++ responseDetails(created))
@@ -150,16 +155,22 @@ class PaperNotificationService @Inject() (
     Future.successful(())
   }
 
-  lazy val handleBounce: Boolean =
+  private lazy val handleBounce: Boolean =
     configuration.getOptional[Boolean]("handle.bounce.eventhub").getOrElse(false)
 
+  private lazy val isHipProcessingEnabled: Boolean =
+    configuration.getOptional[Boolean]("microservice.services.hip.email-bounce-back.enabled").getOrElse(false)
+
+  private def isFormIdEligibleToBeProcessedByHIP(formId: String): Boolean =
+    bouncebackFormIds.contains(formId.toUpperCase)
+
+  private def hodsNameToProcessRequest(formId: String) =
+    if (isFormIdEligibleToBeProcessedByHIP(formId) && isHipProcessingEnabled) HIP else EIS
+
   private def uuidToBeUsedForTheRequest(formId: Option[String]) =
-    if (isFormIdEligibleToBeProcessedByHIP(formId.getOrElse(EMPTY_STRING))) {
+    if (hodsNameToProcessRequest(formId.getOrElse(EMPTY_STRING)) == HIP) {
       Util.uuidOfLength32
     } else {
       Util.uuidOfLength31
     }
-
-  private def isFormIdEligibleToBeProcessedByHIP(formId: String): Boolean =
-    bouncebackFormIds.contains(formId.toUpperCase)
 }

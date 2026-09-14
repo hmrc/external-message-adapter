@@ -30,7 +30,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import play.api.libs.ws.writeableOf_JsValue
 import uk.gov.hmrc.externalmessageadapter.utils.Util
-import uk.gov.hmrc.externalmessageadapter.utils.Util.{ COLON, COMMA_WITH_SPACE, EMPTY_STRING, encodeStringToBase64, uuidOfLength32 }
+import uk.gov.hmrc.externalmessageadapter.utils.Util.{ COLON, COMMA_WITH_SPACE, EIS, EMPTY_STRING, HIP, encodeStringToBase64, uuidOfLength32 }
 
 import java.net.URI
 import java.time.format.DateTimeFormatter
@@ -42,24 +42,26 @@ import scala.concurrent.{ ExecutionContext, Future }
 @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
 class EISAndHIPConnector @Inject() (
   httpClient: HttpClientV2,
-  servicesConfig: ServicesConfig,
-  @Named("bouncebackFormIds") bouncebackFormIds: Seq[String]
+  servicesConfig: ServicesConfig
 )(implicit ec: ExecutionContext) {
 
   val logger: Logger = Logger(this.getClass)
 
-  private val isHipProcessingEnabled: Boolean = servicesConfig.getConfBool("hip.email-bounce-back.enabled", false)
   private val isFallBackToEISEnabled: Boolean =
     servicesConfig.getConfBool("hip.email-bounce-back.fall-back-to-eis-enabled", false)
 
-  def post(gmcPrintRequest: GmcPrintRequest, correlationId: String): Future[Option[GmcPrintResponse]] = {
+  def post(
+    gmcPrintRequest: GmcPrintRequest,
+    correlationId: String,
+    hodsName: String = EIS
+  ): Future[Option[GmcPrintResponse]] = {
     logger.debug(
       s"EventHub Processor: CorrelationId - $correlationId with gmcPrintRequest details for ${gmcPrintRequest.reason}"
     )
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
-    if (isFormIdEligibleToBeProcessedByHIP(gmcPrintRequest.formId.getOrElse(EMPTY_STRING)) && isHipProcessingEnabled) {
+    if (hodsName == HIP) {
       processRequestOverHIP(gmcPrintRequest, correlationId).flatten
     } else {
       processRequestOverEIS(gmcPrintRequest, correlationId)
@@ -110,9 +112,6 @@ class EISAndHIPConnector @Inject() (
             .orElse(Some(GmcPrintResponse.unknownGmcPrintResponse(resp.status)))
       }
   }
-
-  private def isFormIdEligibleToBeProcessedByHIP(formId: String): Boolean =
-    bouncebackFormIds.contains(formId.toUpperCase)
 
   private def processRequestOverHIP(
     gmcPrintRequest: GmcPrintRequest,
