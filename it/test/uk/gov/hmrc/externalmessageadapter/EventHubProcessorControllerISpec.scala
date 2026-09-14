@@ -641,7 +641,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
   trait TestCaseWithHipEnabled {
 
-    val hipEndPoint = "/ccmp/emailBounceback"
+    val hipEndPoint = "/ccmp/emailbounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "authToken23432"
 
@@ -692,7 +692,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
   trait TestCaseWithHipAndFallBackToEISEnabled {
 
-    val hipEndPoint = "/ccmp/emailBounceback"
+    val hipEndPoint = "/ccmp/emailbounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "authToken23432"
 
@@ -730,13 +730,13 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
         inject.bind[MongoMessageRepository].toInstance(mockMsgRepository)
       )
       .configure(
-        "play.filters.csp.nonce.enabled"                                       -> false,
-        "auditing.enabled"                                                     -> "false",
-        "microservice.metrics.graphite.enabled"                                -> "false",
-        "metrics.enabled"                                                      -> "false",
-        "microservice.services.hip.email-bounce-back.enabled"                  -> true,
-        "handle.bounce.eventhub"                                               -> true,
-        "microservice.services.hip.email-bounce-back.fall-back-to-eis-enabled" -> true
+        "play.filters.csp.nonce.enabled"                                                -> false,
+        "auditing.enabled"                                                              -> "false",
+        "microservice.metrics.graphite.enabled"                                         -> "false",
+        "metrics.enabled"                                                               -> "false",
+        "microservice.services.hip.email-bounce-back.enabled"                           -> true,
+        "handle.bounce.eventhub"                                                        -> true,
+        "microservice.services.hip.email-bounce-back.fall-back-to-eis-on-error-enabled" -> true
       )
       .configure(config)
       .build()

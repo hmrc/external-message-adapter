@@ -24,7 +24,7 @@ import uk.gov.hmrc.externalmessageadapter.model.{ GmcPrintRequest, GmcPrintRespo
 import uk.gov.hmrc.common.message.model.Message
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
 import uk.gov.hmrc.externalmessageadapter.utils.Util
-import uk.gov.hmrc.externalmessageadapter.utils.Util.{ EIS, EMPTY_STRING, HIP }
+import uk.gov.hmrc.externalmessageadapter.utils.Util.{ ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE, EIS, EMPTY_STRING, HIP, LENGTH_36 }
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.AuditExtensions.*
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -169,8 +169,8 @@ class PaperNotificationService @Inject() (
 
   private def uuidToBeUsedForTheRequest(formId: Option[String]) =
     if (platformNameToProcessRequest(formId.getOrElse(EMPTY_STRING)) == HIP) {
-      Util.uuidOfLength32
+      Util.uuidOfProvidedLength(LENGTH_36)
     } else {
-      Util.uuidOfLength31
+      Util.uuidOfProvidedLength(ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE)
     }
 }

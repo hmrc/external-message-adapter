@@ -31,32 +31,38 @@ class UtilSpec extends SpecBase {
     }
   }
 
-  "uuidOfLength31" should {
-
-    "return the UUID string of length 31 and without any hyphen" in {
-      uuidOfLength31.length mustBe 31
-      assert(!uuidOfLength31.contains(HYPHEN))
-    }
-  }
-
-  "uuidOfLength32" should {
-    "return the UUID string of length 32 and without any hyphen" in {
-      uuidOfLength32.length mustBe 32
-      assert(!uuidOfLength32.contains(HYPHEN))
-    }
-  }
-
   "encodeStringToBase64" should {
     "return the encoded value" in {
       encodeStringToBase64("AbCdEf123456:AbCdEf123897") mustBe "QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
     }
   }
 
-  "uuidWithHyphenAndOfLength36" should {
+  "uuidOfProvidedLength" should {
+
+    "return the UUID string of length 31 and without any hyphen" in {
+      val resultedUUID = uuidOfProvidedLength(ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE)
+
+      resultedUUID.length mustBe 31
+      assert(!resultedUUID.contains(HYPHEN))
+    }
+
+    "return the UUID string of length 32 and without any hyphen" in {
+      val resultedUUID = uuidOfProvidedLength(LENGTH_32)
+
+      resultedUUID.length mustBe 32
+      assert(!resultedUUID.contains(HYPHEN))
+    }
+
     "return UUID of 36 characters and with hyphen" in {
-      val resultedUUID = uuidWithHyphenAndOfLength36
+      val resultedUUID = uuidOfProvidedLength(LENGTH_36)
 
       resultedUUID.length mustBe 36
+      resultedUUID.contains(HYPHEN) mustBe true
+    }
+
+    "return UUID of default length and with hyphen when no length is provided" in {
+      val resultedUUID = uuidOfProvidedLength()
+
       resultedUUID.contains(HYPHEN) mustBe true
     }
   }

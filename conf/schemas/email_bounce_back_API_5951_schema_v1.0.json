@@ -6,7 +6,7 @@
       "format": "email",
       "description": "Email address associated with the bounced communication.",
       "maxLength": 320,
-      "pattern": "^[^@\\s]{1,64\\s]{1,255}$",
+      "pattern": "^[^@\\s]{1,64}@[^@\\s]{1,255}$",
       "type": "string",
       "example": "someEmail@test.com"
     },
@@ -49,7 +49,8 @@
   "required": [
     "externalRefId",
     "reason",
-    "sourceData"
+    "sourceData",
+    "emailAddress"
   ],
   "definitions": {
     "Property": {

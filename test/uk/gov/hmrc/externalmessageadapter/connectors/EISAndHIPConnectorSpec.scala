@@ -948,7 +948,7 @@ class EISAndHIPConnectorSpec
 
   trait TestCaseWithHipEnabled {
 
-    val hipEndPoint = "/ccmp/emailBounceback"
+    val hipEndPoint = "/ccmp/emailbounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
 
@@ -972,7 +972,7 @@ class EISAndHIPConnectorSpec
 
   trait TestCaseWithHipAndFallBackToEISEnabled {
 
-    val hipEndPoint = "/ccmp/emailBounceback"
+    val hipEndPoint = "/ccmp/emailbounceback"
     val eisEndPoint = "/sa-forms/suppression/send-letter"
     val authToken = "Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="
 
@@ -982,12 +982,12 @@ class EISAndHIPConnectorSpec
     val mockServiceConfig: ServicesConfig = mock[ServicesConfig]
     val application: Application = new GuiceApplicationBuilder()
       .configure(
-        "play.filters.csp.nonce.enabled"                                       -> false,
-        "auditing.enabled"                                                     -> "false",
-        "microservice.metrics.graphite.enabled"                                -> "false",
-        "metrics.enabled"                                                      -> "false",
-        "microservice.services.hip.email-bounce-back.enabled"                  -> true,
-        "microservice.services.hip.email-bounce-back.fall-back-to-eis-enabled" -> true
+        "play.filters.csp.nonce.enabled"                                                -> false,
+        "auditing.enabled"                                                              -> "false",
+        "microservice.metrics.graphite.enabled"                                         -> "false",
+        "metrics.enabled"                                                               -> "false",
+        "microservice.services.hip.email-bounce-back.enabled"                           -> true,
+        "microservice.services.hip.email-bounce-back.fall-back-to-eis-on-error-enabled" -> true
       )
       .configure(config)
       .build()

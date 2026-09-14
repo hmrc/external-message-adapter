@@ -8,5 +8,6 @@
     }
   ],
   "reason": "EMAIL_BOUNCE",
-  "sourceData": "SGVsbG8gd29ybGQ="
+  "sourceData": "SGVsbG8gd29ybGQ=",
+  "emailAddress": "someEmail@test.com"
 }

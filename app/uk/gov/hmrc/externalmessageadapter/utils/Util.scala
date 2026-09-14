@@ -21,8 +21,9 @@ import java.util.{ Base64, UUID }
 
 object Util {
 
-  private val ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE = 31
-  private val LENGTH_32 = 32
+  val ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE = 31
+  val LENGTH_32 = 32
+  val LENGTH_36 = 36
   val HYPHEN = "-"
   val EMPTY_STRING = ""
   val COMMA_WITH_SPACE = ", "
@@ -33,18 +34,17 @@ object Util {
   val EIS = "EIS"
   val HIP = "HIP"
 
-  def uuidOfLength31: String =
-    UUID
-      .randomUUID()
-      .toString
-      .replace(HYPHEN, EMPTY_STRING)
-      .substring(0, ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE)
-
-  // Is being used for API-5951
-  def uuidOfLength32: String =
-    UUID.randomUUID().toString.replace(HYPHEN, EMPTY_STRING).substring(0, LENGTH_32)
-
-  def uuidWithHyphenAndOfLength36: String = UUID.randomUUID().toString
+  def uuidOfProvidedLength(uuidLength: Int = LENGTH_36): String = uuidLength match {
+    case ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE =>
+      UUID
+        .randomUUID()
+        .toString
+        .replace(HYPHEN, EMPTY_STRING)
+        .substring(0, ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE)
+    case LENGTH_32 => UUID.randomUUID().toString.replace(HYPHEN, EMPTY_STRING).substring(0, LENGTH_32)
+    case LENGTH_36 => UUID.randomUUID().toString.substring(0, LENGTH_36)
+    case _         => UUID.randomUUID().toString
+  }
 
   def encodeStringToBase64(inputString: String): String =
     Base64.getEncoder.encodeToString(inputString.getBytes(StandardCharsets.UTF_8))

@@ -30,7 +30,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import play.api.libs.ws.writeableOf_JsValue
 import uk.gov.hmrc.externalmessageadapter.utils.Util
-import uk.gov.hmrc.externalmessageadapter.utils.Util.{ COLON, COMMA_WITH_SPACE, EIS, EMPTY_STRING, HIP, encodeStringToBase64, uuidOfLength32 }
+import uk.gov.hmrc.externalmessageadapter.utils.Util.*
 
 import java.net.URI
 import java.time.format.DateTimeFormatter
@@ -48,7 +48,7 @@ class EISAndHIPConnector @Inject() (
   val logger: Logger = Logger(this.getClass)
 
   private val isFallBackToEISEnabled: Boolean =
-    servicesConfig.getConfBool("hip.email-bounce-back.fall-back-to-eis-enabled", false)
+    servicesConfig.getConfBool("hip.email-bounce-back.fall-back-to-eis-on-error-enabled", false)
 
   def post(
     gmcPrintRequest: GmcPrintRequest,
@@ -188,7 +188,7 @@ class EISAndHIPConnector @Inject() (
   }
 
   private def retryRequestOverEIS(gmcPrintRequest: GmcPrintRequest, resp: HttpResponse)(implicit hc: HeaderCarrier) = {
-    val correlationIdForEIS = Util.uuidOfLength31
+    val correlationIdForEIS = Util.uuidOfProvidedLength(ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE)
 
     logErrorForEISFallBackScenario(resp.status, correlationIdForEIS)
 
