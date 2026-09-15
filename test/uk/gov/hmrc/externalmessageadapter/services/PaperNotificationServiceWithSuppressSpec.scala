@@ -1,6 +1,17 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package uk.gov.hmrc.externalmessageadapter.services
@@ -18,7 +29,7 @@ import play.api.Configuration
 import uk.gov.hmrc.common.message.model._
 import uk.gov.hmrc.domain.SaUtr
 import uk.gov.hmrc.externalmessageadapter.MetricOrchestratorStub
-import uk.gov.hmrc.externalmessageadapter.connectors.EISConnector
+import uk.gov.hmrc.externalmessageadapter.connectors.EISAndHIPConnector
 import uk.gov.hmrc.externalmessageadapter.util.MessageFixtures
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.metrix.MetricOrchestrator
@@ -34,13 +45,13 @@ class PaperNotificationServiceWithSuppressSpec
     extends PlaySpec with MockitoSugar with LoneElement with ScalaFutures with MetricOrchestratorStub
     with IntegrationPatience {
 
-  val auditConnector = mock[AuditConnector]
-  val eisConnector = mock[EISConnector]
+  val auditConnector: AuditConnector = mock[AuditConnector]
+  val eisAndHipConnector: EISAndHIPConnector = mock[EISAndHIPConnector]
 
   private val injector: Injector = new GuiceApplicationBuilder()
     .overrides(bind[MetricOrchestrator].toInstance(mockMetricOrchestrator))
     .overrides(bind[AuditConnector].toInstance(auditConnector))
-    .overrides(bind[EISConnector].toInstance(eisConnector))
+    .overrides(bind[EISAndHIPConnector].toInstance(eisAndHipConnector))
     .configure(
       "gmc.denylist"                -> List("SA999", "SA888"),
       "metrics.enabled"             -> "false",
@@ -92,7 +103,7 @@ class PaperNotificationServiceWithSuppressSpec
           not contain ("deskProTicketSequenceNumber" -> "1")
       }
 
-      verifyNoInteractions(eisConnector)
+      verifyNoInteractions(eisAndHipConnector)
     }
   }
 

@@ -116,4 +116,34 @@ TODO
 
 ### POST /message-process-eventhub-events
 
-TODO
+Bounce events with FormIds CH(A)1700, CH(A)1708 (API 5951) are processed (if relevant config is enabled) over HIP. Rest of the formIds for Bounce events are
+processed over EIS
+
+Sample request
+
+```json
+{
+  "eventId": "Wl9bhh2yW8W5ASVEPYCaFHPvB4xZQFdw30",
+  "timestamp": "2026-02-20T01:21:00",
+  "event": {
+    "event": "permanentbounce",
+    "emailAddress": "sample@test.com",
+    "detected": "2026-02-20T01:21:00",
+    "code": 2,
+    "reason": "test_reason",
+    "tags": {
+      "messageId": "ANJ100204265244312689"
+    }
+  }
+}
+```
+Responds with status code:
+
+- 204 if the event is successfully processed or addressed
+- 400 (Bad Request) if the body is not as per the above definition
+- 401 (Unauthorized) if any of mandatory headers (Authorization and correlationid) is missing or Authorization header
+    value is not of correct format
+- 403 (Forbidden)
+- 404 (NotFound)
+- 500 (InternalServerError)
+- 503 (ServiceUnavailable)

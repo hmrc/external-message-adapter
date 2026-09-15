@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,14 @@ package uk.gov.hmrc.externalmessageadapter.services
 
 import play.api.Logger
 import play.api.http.Status.*
+import play.api.libs.json.Json
 import play.api.mvc.Result
-import play.api.mvc.Results.NoContent
+import play.api.mvc.Results.{ BadRequest, NoContent }
+import uk.gov.hmrc.common.message.failuremodule.{ FailureResponse, FailureResponseService }
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
-import uk.gov.hmrc.common.message.failuremodule.FailureResponseService.errorResponseResult
+import uk.gov.hmrc.common.message.failuremodule.FailureResponseService.{ INVALID_REQUEST, errorResponseResult }
 import uk.gov.hmrc.common.message.model.{ Details, Message }
+import uk.gov.hmrc.externalmessageadapter.utils.Util.ORIGIN_HIP_ERROR_MSG_PREFIX
 import uk.gov.hmrc.http.UpstreamErrorResponse.Upstream4xxResponse
 import uk.gov.hmrc.http.UpstreamErrorResponse.Upstream5xxResponse
 import uk.gov.hmrc.http.HeaderCarrier
@@ -47,11 +50,13 @@ class MessageService @Inject() (
       case None =>
         logger.debug(s"EventHub Processor: there is no message in collection for the is $messageId")
         Future.successful(NoContent)
+
       case Some(message) if isDenyListed(message.body) =>
         logger.debug(
           s"EventHub Processor: the formId used for the message $messageId is in the gmc denied list $denyListedFormIds"
         )
         paperNotificationService.auditOnly(message).map(_ => NoContent)
+
       case Some(message) =>
         val properties = message.body.flatMap(_.properties)
         paperNotificationService
@@ -91,9 +96,13 @@ class MessageService @Inject() (
 
   private def statusHelper(statusCode: Int, message: String): Result =
     statusCode match {
+      case BAD_REQUEST if message.startsWith(ORIGIN_HIP_ERROR_MSG_PREFIX) =>
+        BadRequest(Json.toJson(FailureResponse(INVALID_REQUEST, message.stripPrefix(ORIGIN_HIP_ERROR_MSG_PREFIX).trim)))
+
       case BAD_REQUEST =>
         logger.info(s"EventHub Processor: Received a 400 from eis connector with the error message: $message")
         errorResponseResult(message, OK, showErrorID = true)
+
       case INTERNAL_SERVER_ERROR => errorResponseResult(message, INTERNAL_SERVER_ERROR, showErrorID = true)
       case SERVICE_UNAVAILABLE   => errorResponseResult(message, INTERNAL_SERVER_ERROR, showErrorID = true)
       case r                     => errorResponseResult(message, r, showErrorID = true)

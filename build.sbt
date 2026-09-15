@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  */
 
@@ -17,6 +17,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(scalaSettings *)
   .settings(defaultSettings() *)
   .settings(
+    PlayKeys.playDefaultPort := 8911,
     libraryDependencies ++= AppDependencies.appDependencies,
     dependencyOverrides ++= AppDependencies.overrides,
     Test / parallelExecution := false,
@@ -30,11 +31,8 @@ lazy val microservice = Project(appName, file("."))
   .settings(inConfig(TemplateTest)(Defaults.testSettings) *)
   .settings(
     scalacOptions ++= List(
-      // Silence unused imports in template files
       "-Wconf:msg=unused import&src=.*:s",
-      // Silence "Flag -XXX set repeatedly"
       "-Wconf:msg=Flag.*repeatedly:s",
-      // Silence unused warnings on Play `routes` files
       "-Wconf:src=routes/.*:s"
     ),
     scalacOptions := scalacOptions.value.distinct
@@ -47,6 +45,7 @@ lazy val it = project
   .enablePlugins(PlayScala)
   .dependsOn(microservice % "test->test") // the "test->test" allows reusing test code and test dependencies
   .settings(DefaultBuildSettings.itSettings())
+  .settings(scalacOptions ++= List("-Wconf:msg=Flag.*repeatedly:s"))
 
 Test / test := (Test / test)
   .dependsOn(scalafmtCheckAll)

@@ -1,6 +1,17 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package uk.gov.hmrc.externalmessageadapter.services
@@ -184,6 +195,87 @@ class MessageServiceSpec
       val result: Future[mvc.Result] = messageService.processBounceEvent(externalRef, emailAddress)
 
       status(result) must be(OK)
+    }
+
+    "return BAD_REQUEST if the error message originated from HIP API response" in new TestCase {
+      private val messageForAuthorisedUtr: Message =
+        getMessageForAuthorisedUtr(messageId, TEST_SOURCE_DATA, Some(testTime), formId = "AtSV2")
+
+      val updatedDetails: Option[Details] = messageForAuthorisedUtr.body.map(body => body.copy(form = None))
+      val updatedMessage: Message = messageForAuthorisedUtr.copy(body = updatedDetails)
+
+      when(mockMessageRepository.findByExternalRefId(any[String]))
+        .thenReturn(Future.successful(Some(updatedMessage)))
+
+      when(mockPaperNotificationService.sendGmcPaperNotification(any, any, any)(any, any))
+        .thenReturn(
+          Future.failed(UpstreamErrorResponse("Origin:::HIP Path '/emailAddress' validation failed", BAD_REQUEST))
+        )
+
+      val externalRef = "123412342314"
+      val emailAddress = "emailAddress"
+
+      val result: Future[mvc.Result] = messageService.processBounceEvent(externalRef, emailAddress)
+
+      status(result) must be(BAD_REQUEST)
+      contentAsJson(
+        result
+      ).toString mustBe
+        """{"failureId":"INVALID_REQUEST","reason":"Path '/emailAddress' validation failed"}""".stripMargin
+    }
+
+    "return UNAUTHORIZED if UNAUTHORIZED error message originated from HIP API response" in new TestCase {
+      private val messageForAuthorisedUtr: Message =
+        getMessageForAuthorisedUtr(messageId, TEST_SOURCE_DATA, Some(testTime), formId = "AtSV2")
+
+      val updatedDetails: Option[Details] = messageForAuthorisedUtr.body.map(body => body.copy(form = None))
+      val updatedMessage: Message = messageForAuthorisedUtr.copy(body = updatedDetails)
+
+      when(mockMessageRepository.findByExternalRefId(any[String]))
+        .thenReturn(Future.successful(Some(updatedMessage)))
+
+      when(mockPaperNotificationService.sendGmcPaperNotification(any, any, any)(any, any))
+        .thenReturn(
+          Future.failed(UpstreamErrorResponse("Authentication information is missing or invalid", UNAUTHORIZED))
+        )
+
+      val externalRef = "123412342314"
+      val emailAddress = "emailAddress"
+
+      val result: Future[mvc.Result] = messageService.processBounceEvent(externalRef, emailAddress)
+
+      status(result) must be(UNAUTHORIZED)
+      contentAsJson(
+        result
+      ).toString mustBe
+        """{"failureId":"MISSING_AUTHENTICATION_INFO","reason":"Authentication information is missing or invalid"}""".stripMargin
+    }
+
+    "return FORBIDDEN if FORBIDDEN error message originated from HIP API response" in new TestCase {
+      private val messageForAuthorisedUtr: Message =
+        getMessageForAuthorisedUtr(messageId, TEST_SOURCE_DATA, Some(testTime), formId = "AtSV2")
+
+      val updatedDetails: Option[Details] = messageForAuthorisedUtr.body.map(body => body.copy(form = None))
+      val updatedMessage: Message = messageForAuthorisedUtr.copy(body = updatedDetails)
+
+      when(mockMessageRepository.findByExternalRefId(any[String]))
+        .thenReturn(Future.successful(Some(updatedMessage)))
+
+      when(mockPaperNotificationService.sendGmcPaperNotification(any, any, any)(any, any))
+        .thenReturn(
+          Future.failed(UpstreamErrorResponse("Forbidden", FORBIDDEN))
+        )
+
+      val externalRef = "123412342314"
+      val emailAddress = "emailAddress"
+
+      val result: Future[mvc.Result] = messageService.processBounceEvent(externalRef, emailAddress)
+
+      status(result) must be(FORBIDDEN)
+      contentAsJson(
+        result
+      ).toString mustBe
+        """{"failureId":"FORBIDDEN","reason":"Forbidden"}""".stripMargin
     }
 
     "return INTERNAL_SERVER_ERROR if there is an INTERNAL_SERVER_ERROR received from eis connector" in new TestCase {

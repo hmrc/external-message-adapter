@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,14 @@ package uk.gov.hmrc.externalmessageadapter.services
 import play.api.http.Status
 import play.api.{ Configuration, Logging }
 import play.api.libs.json.{ JsValue, Json }
-import uk.gov.hmrc.externalmessageadapter.connectors.EISConnector
+import uk.gov.hmrc.externalmessageadapter.connectors.EISAndHIPConnector
 import uk.gov.hmrc.externalmessageadapter.model.{ GmcPrintRequest, GmcPrintResponse }
 import uk.gov.hmrc.common.message.model.Message
 import uk.gov.hmrc.externalmessageadapter.repository.MongoMessageRepository
+import uk.gov.hmrc.externalmessageadapter.utils.Util
+import uk.gov.hmrc.externalmessageadapter.utils.Util.{ ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE, EIS, EMPTY_STRING, HIP, LENGTH_36 }
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.audit.AuditExtensions._
+import uk.gov.hmrc.play.audit.AuditExtensions.*
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{ Audit, DataEvent, EventTypes }
 
@@ -37,20 +39,18 @@ import scala.concurrent.{ ExecutionContext, Future }
 @Singleton
 class PaperNotificationService @Inject() (
   @Named("app-name") val appName: String,
-  eisConnector: EISConnector,
+  eisAndHipConnector: EISAndHIPConnector,
   auditConnector: AuditConnector,
   messageRepository: MongoMessageRepository,
   configuration: Configuration
 ) extends Logging {
 
   lazy val audit: Audit = new Audit(appName, auditConnector)
-  private val ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE = 31
 
   def sendGmcPaperNotification(message: Message, emailAddress: String, properties: Option[JsValue] = None)(implicit
     hc: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Option[GmcPrintResponse]] = {
-
     def detailsMap(req: GmcPrintRequest, id: String): Map[String, String] =
       Map("correlationId" -> id, "body" -> Json.toJson(req).toString())
 
@@ -64,11 +64,18 @@ class PaperNotificationService @Inject() (
           )
           None
         }
+
       case Some(request) =>
-        val correlationId =
-          UUID.randomUUID().toString.replace("-", "").substring(0, ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE)
+        // correlationId is of different format for EIS and HIP
+        val correlationId = uuidToBeUsedForTheRequest(request.formId)
+
         (for {
-          created <- eisConnector.post(request, correlationId)
+          created <-
+            eisAndHipConnector.post(
+              request,
+              correlationId,
+              platformNameToProcessRequest(request.formId.getOrElse(EMPTY_STRING))
+            )
           _ = logger warn s"Eventhub Processor $created"
           _ <- if (created.isEmpty) messageRepository.removeById(message.id) else Future.successful(false)
           _ = auditMessage(message, additionalDetails = detailsMap(request, correlationId) ++ responseDetails(created))
@@ -78,6 +85,7 @@ class PaperNotificationService @Inject() (
             auditMessage(message, eventType = EventTypes.Failed, additionalDetails = detailsMap(request, correlationId))
             Future.failed(e)
           }
+
       case _ =>
         logger.warn(
           s"No GmcPrintRequest to send for message ${message.externalRef.map(_.id).getOrElse(message.id.toString)}"
@@ -146,7 +154,25 @@ class PaperNotificationService @Inject() (
     Future.successful(())
   }
 
-  lazy val handleBounce: Boolean =
+  private lazy val handleBounce: Boolean =
     configuration.getOptional[Boolean]("handle.bounce.eventhub").getOrElse(false)
 
+  private lazy val isHipProcessingEnabled: Boolean =
+    configuration.getOptional[Boolean]("microservice.services.hip.email-bounce-back.enabled").getOrElse(false)
+
+  private lazy val emailBounceBackFormIds: Seq[String] =
+    configuration.getOptional[Seq[String]]("microservice.services.hip.email-bounce-back.formIds").getOrElse(Seq())
+
+  private def isFormIdEligibleToBeProcessedByHIP(formId: String): Boolean =
+    emailBounceBackFormIds.contains(formId.toUpperCase)
+
+  private def platformNameToProcessRequest(formId: String) =
+    if (isFormIdEligibleToBeProcessedByHIP(formId) && isHipProcessingEnabled) HIP else EIS
+
+  private def uuidToBeUsedForTheRequest(formId: Option[String]) =
+    if (platformNameToProcessRequest(formId.getOrElse(EMPTY_STRING)) == HIP) {
+      Util.uuidOfProvidedLength(LENGTH_36)
+    } else {
+      Util.uuidOfProvidedLength(ACKNOWLEDGEMENT_REFERENCE_MAX_LENGTH_MINUS_ONE)
+    }
 }
