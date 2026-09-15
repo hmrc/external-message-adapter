@@ -619,7 +619,7 @@ class EISAndHIPConnectorSpec
 
         val failedFuture: Future[Throwable] = result.failed
         failedFuture.futureValue.getMessage mustBe
-          "Schema validation failed for the GmcPrintRequest due to error" +
+          "Schema validation failed for HIP GmcPrintRequest due to error" +
           " :: (/emailAddress: ECMA 262 regex \"^[^@\\s]{1,64}@[^@\\s]{1,255}$\" does not match" +
           " input string \"invalidemail.com\"):::(/emailAddress: string \"invalidemail.com\" is not a valid email address)"
       }
@@ -637,7 +637,7 @@ class EISAndHIPConnectorSpec
         val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
         val failedFuture: Future[Throwable] = result.failed
 
-        failedFuture.futureValue.getMessage mustBe "Schema validation failed for the GmcPrintRequest due to error :: " +
+        failedFuture.futureValue.getMessage mustBe "Schema validation failed for HIP GmcPrintRequest due to error :: " +
           "(: object has missing required properties ([\"externalRefId\"]))"
       }
     }

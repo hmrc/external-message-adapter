@@ -82,7 +82,7 @@ class EISAndHIPConnector @Inject() (
       case Failure(exception) =>
         Future.failed(
           BadRequestException(
-            s"Schema validation failed for the GmcPrintRequest due to error :: ${exception.getMessage}"
+            s"Schema validation failed for HIP GmcPrintRequest due to error :: ${exception.getMessage}"
           )
         )
     }

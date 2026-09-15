@@ -342,7 +342,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
         val result: Future[Result] = route(application, request).head
         val failedFuture: Future[Throwable] = result.failed
 
-        failedFuture.futureValue.getMessage mustBe "Schema validation failed for the GmcPrintRequest due to error" +
+        failedFuture.futureValue.getMessage mustBe "Schema validation failed for HIP GmcPrintRequest due to error" +
           " :: (/emailAddress: ECMA 262 regex \"^[^@\\s]{1,64}@[^@\\s]{1,255}$\" does not" +
           " match input string \"invalidemail.com\"):::(/emailAddress: string \"invalidemail.com\" is not a valid email address)"
       }
