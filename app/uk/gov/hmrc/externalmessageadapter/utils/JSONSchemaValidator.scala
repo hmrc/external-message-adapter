@@ -33,7 +33,7 @@ class JSONSchemaValidator {
   private type ValidationReport = Either[List[ErrorReport], Unit]
   private val basePath = System.getProperty("user.dir")
 
-  val emailBounceBackSchema = "/schemas/email_bounce_back_API_5951_schema_v1.0.json"
+  val emailBounceBackSchema = "/schemas/email_bounce_back_API_5951_schema_v1.0.2.json"
 
   def validatePayload(data: JsValue, apiSchemaPath: String): Try[Unit] =
     validateJsonPayload(apiSchemaPath, data) match {

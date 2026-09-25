@@ -28,7 +28,7 @@
       "description": "Optional collection of additional processing properties.",
       "type": "array",
       "items": {
-        "$ref": "#/definitions/Property"
+        "$ref": "#/definitions/PropertyWrapper"
       }
     },
     "reason": {
@@ -53,6 +53,17 @@
     "emailAddress"
   ],
   "definitions": {
+    "PropertyWrapper": {
+      "required": [
+        "property"
+      ],
+      "type": "object",
+      "properties": {
+        "property": {
+          "$ref": "#/definitions/Property"
+        }
+      }
+    },
     "Property": {
       "type": "object",
       "properties": {

@@ -36,7 +36,7 @@ import com.typesafe.config.ConfigFactory
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import play.api.http.Status.{ BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, NOT_IMPLEMENTED, OK, REQUEST_TIMEOUT, SERVICE_UNAVAILABLE, UNAUTHORIZED }
-import play.api.libs.json.Json
+import play.api.libs.json.{ JsValue, Json }
 import com.github.tomakehurst.wiremock.http.RequestMethod.POST
 import uk.gov.hmrc.externalmessageadapter.model.GmcPrintResponse.UNKNOWN_HIP_ERROR
 import play.api.test.Helpers.*
@@ -254,6 +254,108 @@ class EISAndHIPConnectorSpec
           verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
         }
 
+      "hip.email-bounce-back is enabled, processingPlatform is HIP and formId is" +
+        " one of that are part of bounceback formIds (API 5951) and" +
+        " request has properties with single property" in new TestCaseWithHipEnabled {
+
+          val expectedRequest: String =
+            s"""
+               |{
+               |  "reason": "EMAIL_BOUNCE",
+               |  "sourceData": "$sourceData",
+               |  "emailAddress": "a@a.com",
+               |  "externalRefId": "${externalRefId.value}",
+               |  "formId": "CH(A)1700",
+               |  "properties": [
+               |    {
+               |      "property": {
+               |        "name": "printedVariant",
+               |        "value": "false"
+               |      }
+               |    }
+               |  ]
+               |}
+               |""".stripMargin
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(equalToJson(expectedRequest, true, true))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(ok.withHeader("correlationid", "e470d65899f74292a4a1ed12c72f1337"))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              "EMAIL_BOUNCE",
+              sourceData,
+              "a@a.com",
+              Some("CH(A)1700"),
+              Some(Json.parse(propertiesWithSinglePropJsonString)),
+              Some("U0582898ZZ2G4F88AAG")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
+
+          result.futureValue mustBe None
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+        }
+
+      "hip.email-bounce-back is enabled, processingPlatform is HIP and formId is" +
+        " one of that are part of bounceback formIds (API 5951) and" +
+        " request has properties with multiple properties" in new TestCaseWithHipEnabled {
+
+          val expectedRequest: String =
+            s"""
+               |{
+               |  "reason": "EMAIL_BOUNCE",
+               |  "sourceData": "$sourceData",
+               |  "emailAddress": "a@a.com",
+               |  "externalRefId": "${externalRefId.value}",
+               |  "formId": "CH(A)1700",
+               |  "properties": [
+               |    {
+               |      "property": {
+               |        "name": "printedVariant",
+               |        "value": "false"
+               |      },
+               |      "property": {
+               |        "name": "printedVariant1",
+               |        "value": "true"
+               |      }
+               |    }
+               |  ]
+               |}
+               |""".stripMargin
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(equalToJson(expectedRequest, true, true))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(ok.withHeader("correlationid", "e470d65899f74292a4a1ed12c72f1337"))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              "EMAIL_BOUNCE",
+              sourceData,
+              "a@a.com",
+              Some("CH(A)1700"),
+              Some(Json.parse(propertiesWithMulPropJsonString)),
+              Some("U0582898ZZ2G4F88AAG")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
+
+          result.futureValue mustBe None
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+        }
+
       "hip.email-bounce-back is enabled, processingPlatform is EIS and formId is not" +
         " one of that are part of bounceback formIds (API 5951)" in new TestCaseWithHipEnabled {
           val expectedResponse =
@@ -339,6 +441,26 @@ class EISAndHIPConnectorSpec
         )
 
         verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+      }
+
+      "request is sent to hip endpoint and request fails in schema validation on MDTP" in new TestCaseWithHipEnabled {
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = sourceData,
+            emailAddress = "a@a.com",
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId,
+            properties = Some(Json.parse(invalidPropertiesJsonString))
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
+
+        val resultWithFailedException: Throwable = await(result.failed)
+
+        resultWithFailedException.getMessage mustBe "Schema validation failed for HIP GmcPrintRequest due to error ::" +
+          " (/properties/0: object has missing required properties ([\"property\"])):::" +
+          "(/properties/1: object has missing required properties ([\"property\"]))"
       }
 
       "request is sent to hip endpoint and upstream sends UNAUTHORIZED response" in new TestCaseWithHipEnabled {
@@ -1020,6 +1142,43 @@ class EISAndHIPConnectorSpec
 
     val externalRefId = Some("U0582898ZZ2G4F88AAG")
     val sourceData = "U29tZSBIYXNoZWQgRGF0YQ=="
+
+    val propertiesWithSinglePropJsonString: String = """[
+                                                       |    {
+                                                       |      "property": {
+                                                       |        "name": "printedVariant",
+                                                       |        "value": "false"
+                                                       |      }
+                                                       |    }
+                                                       |  ]""".stripMargin
+
+    val propertiesWithMulPropJsonString: String =
+      """[
+        |    {
+        |      "property": {
+        |        "name": "printedVariant",
+        |        "value": "false"
+        |      }
+        |    },
+        |   {
+        |      "property": {
+        |        "name": "printedVariant1",
+        |        "value": "true"
+        |      }
+        |    }
+        |]""".stripMargin
+
+    val invalidPropertiesJsonString: String =
+      """[
+        |    {
+        |      "name": "printedVariant",
+        |      "value": "false"
+        |    },
+        |   {
+        |      "name": "printedVariant1",
+        |       "value": "true"
+        |    }
+        |]""".stripMargin
 
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
     implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]

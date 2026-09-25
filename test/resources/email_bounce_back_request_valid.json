@@ -3,8 +3,16 @@
   "formId": "SA300",
   "properties": [
     {
-      "name": "printedVariant",
-      "value": "true"
+      "property": {
+        "name": "printedVariant",
+        "value": "true"
+      }
+    },
+    {
+      "property": {
+        "name": "printedVariant1",
+        "value": "false"
+      }
     }
   ],
   "reason": "EMAIL_BOUNCE",

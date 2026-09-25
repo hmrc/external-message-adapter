@@ -26,9 +26,10 @@ import uk.gov.hmrc.externalmessageadapter.util.SpecBase
 import scala.util.Try
 
 class JSONSchemaValidatorSpec extends SpecBase with TryValues with GuiceOneAppPerSuite with JsonFileReader {
-  val emailBounceBackSchemaPath = "/schemas/email_bounce_back_API_5951_schema_v1.0.json"
+  val emailBounceBackSchemaPath = "/schemas/email_bounce_back_API_5951_schema_v1.0.2.json"
   val emailBounceBackValidRequest = "/email_bounce_back_request_valid.json"
   val emailBounceBackInvalidRequest = "/email_bounce_back_request_invalid.json"
+  val emailBounceBackInvalidPropertiesRequest = "/email_bounce_back_request_invalid_properties.json"
 
   "ssfnRequestSchema" should {
     "return correct value for the schema path" in new Setup {
@@ -45,17 +46,31 @@ class JSONSchemaValidatorSpec extends SpecBase with TryValues with GuiceOneAppPe
       result.success.value mustBe ()
     }
 
-    "return error for invalid emailBounceBack request" in new Setup {
-      val result: Try[Unit] = jsonPayloadSchemaValidator.validatePayload(
-        readJsonFromFile(emailBounceBackInvalidRequest),
-        emailBounceBackSchemaPath
-      )
+    "return error for invalid emailBounceBack request" when {
+      "formId is invalid" in new Setup {
+        val result: Try[Unit] = jsonPayloadSchemaValidator.validatePayload(
+          readJsonFromFile(emailBounceBackInvalidRequest),
+          emailBounceBackSchemaPath
+        )
 
-      result.isFailure mustBe true
-      result.failure.exception.getMessage must include(
-        "(/formId: string \"this_form_id_invalid_as_it_is_longer_than_thirty_characters\"" +
-          " is too long (length: 59, maximum allowed: 30)):::(/formId: ECMA 262 regex \"^.{0,30}$"
-      )
+        result.isFailure mustBe true
+        result.failure.exception.getMessage must include(
+          "(/formId: string \"this_form_id_invalid_as_it_is_longer_than_thirty_characters\"" +
+            " is too long (length: 59, maximum allowed: 30)):::(/formId: ECMA 262 regex \"^.{0,30}$"
+        )
+      }
+
+      "properties are invalid" in new Setup {
+        val result: Try[Unit] = jsonPayloadSchemaValidator.validatePayload(
+          readJsonFromFile(emailBounceBackInvalidPropertiesRequest),
+          emailBounceBackSchemaPath
+        )
+
+        result.isFailure mustBe true
+        result.failure.exception.getMessage must include(
+          "/properties/0: object has missing required properties ([\"property\"]))"
+        )
+      }
     }
   }
 
