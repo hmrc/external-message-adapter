@@ -417,6 +417,26 @@ class EISAndHIPConnectorSpec
         verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
       }
 
+      "request is sent to hip endpoint and request fails in schema validation on MDTP" in new TestCaseWithHipEnabled {
+        val reprintRequest: GmcPrintRequest =
+          GmcPrintRequest(
+            reason = "EMAIL_BOUNCE",
+            sourceData = sourceData,
+            emailAddress = "a@a.com",
+            formId = Some("CH(A)1708"),
+            externalRefId = externalRefId,
+            properties = Some(Json.parse(invalidPropertiesJsonString))
+          )
+
+        val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
+
+        val resultWithFailedException: Throwable = await(result.failed)
+
+        resultWithFailedException.getMessage mustBe "Schema validation failed for HIP GmcPrintRequest due to error ::" +
+          " (/properties/0: object has missing required properties ([\"property\"])):::" +
+          "(/properties/1: object has missing required properties ([\"property\"]))"
+      }
+
       "request is sent to hip endpoint and upstream sends UNAUTHORIZED response" in new TestCaseWithHipEnabled {
         val expectedResponse: String = """{"message":"Authentication information is missing or invalid"}""".stripMargin
 
@@ -1119,6 +1139,18 @@ class EISAndHIPConnectorSpec
         |        "name": "printedVariant1",
         |        "value": "true"
         |      }
+        |    }
+        |]""".stripMargin
+
+    val invalidPropertiesJsonString: String =
+      """[
+        |    {
+        |      "name": "printedVariant",
+        |      "value": "false"
+        |    },
+        |   {
+        |      "name": "printedVariant1",
+        |       "value": "true"
         |    }
         |]""".stripMargin
 

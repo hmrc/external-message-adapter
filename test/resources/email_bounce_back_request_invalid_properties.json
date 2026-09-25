@@ -1,0 +1,13 @@
+{
+  "reason":"EMAIL_BOUNCE",
+  "sourceData":"SGVsbG8gd29ybGQ=",
+  "formId":"SA300",
+  "externalRefId":"9d7f1d675d544b009d6c3a8f7fb2e1c4",
+  "emailAddress": "someEmail@test.com",
+  "properties":[
+    {
+      "name": "printedVariant",
+      "value": "true"
+    }
+  ]
+}

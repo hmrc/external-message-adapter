@@ -686,11 +686,22 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
     val eventHubEvent: EventHubEvent =
       EventHubEvent(eventId = TEST_ID, timestamp = TEST_LOCAL_DATE_TIME, event = eventBody)
 
+    val propertiesWithSinglePropJsonString: String =
+      """[
+        |    {
+        |      "property": {
+        |        "name": "printedVariant",
+        |        "value": "false"
+        |      }
+        |    }
+        |  ]""".stripMargin
+
     val details = Details(
       Some("CH(A)1700"),
       Some("print-suppression-notification"),
       Some(TEST_LOCAL_DATE.minusDays(1).toString),
-      Some("C0123456781234568")
+      Some("C0123456781234568"),
+      properties = Some(Json.parse(propertiesWithSinglePropJsonString))
     )
 
     val MSG: Message = TEST_MESSAGE.copy(body = Some(details))
