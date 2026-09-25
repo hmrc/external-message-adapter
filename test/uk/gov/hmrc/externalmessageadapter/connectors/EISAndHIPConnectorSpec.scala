@@ -258,15 +258,28 @@ class EISAndHIPConnectorSpec
         " one of that are part of bounceback formIds (API 5951) and" +
         " request has properties with single property" in new TestCaseWithHipEnabled {
 
+          val expectedRequest: String =
+            s"""
+               |{
+               |  "reason": "EMAIL_BOUNCE",
+               |  "sourceData": "$sourceData",
+               |  "emailAddress": "a@a.com",
+               |  "externalRefId": "${externalRefId.value}",
+               |  "formId": "CH(A)1700",
+               |  "properties": [
+               |    {
+               |      "property": {
+               |        "name": "printedVariant",
+               |        "value": "false"
+               |      }
+               |    }
+               |  ]
+               |}
+               |""".stripMargin
+
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
-              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
-              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
-              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("U0582898ZZ2G4F88AAG")))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
-              .withRequestBody(matchingJsonPath("$.properties[?(@.property.name == 'printedVariant')]"))
-              .withRequestBody(matchingJsonPath("$.properties[?(@.property.value == 'false')]"))
+              .withRequestBody(equalToJson(expectedRequest, true, true))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -294,17 +307,32 @@ class EISAndHIPConnectorSpec
         " one of that are part of bounceback formIds (API 5951) and" +
         " request has properties with multiple properties" in new TestCaseWithHipEnabled {
 
+          val expectedRequest: String =
+            s"""
+               |{
+               |  "reason": "EMAIL_BOUNCE",
+               |  "sourceData": "$sourceData",
+               |  "emailAddress": "a@a.com",
+               |  "externalRefId": "${externalRefId.value}",
+               |  "formId": "CH(A)1700",
+               |  "properties": [
+               |    {
+               |      "property": {
+               |        "name": "printedVariant",
+               |        "value": "false"
+               |      },
+               |      "property": {
+               |        "name": "printedVariant1",
+               |        "value": "true"
+               |      }
+               |    }
+               |  ]
+               |}
+               |""".stripMargin
+
           wireMockServer.stubFor(
             post(urlPathMatching(hipEndPoint))
-              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
-              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
-              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
-              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("U0582898ZZ2G4F88AAG")))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
-              .withRequestBody(matchingJsonPath("$.properties[?(@.property.name == 'printedVariant')]"))
-              .withRequestBody(matchingJsonPath("$.properties[?(@.property.value == 'false')]"))
-              .withRequestBody(matchingJsonPath("$.properties[?(@.property.name == 'printedVariant1')]"))
-              .withRequestBody(matchingJsonPath("$.properties[?(@.property.value == 'true')]"))
+              .withRequestBody(equalToJson(expectedRequest, true, true))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
