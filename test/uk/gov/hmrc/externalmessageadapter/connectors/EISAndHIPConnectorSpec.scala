@@ -36,7 +36,7 @@ import com.typesafe.config.ConfigFactory
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import play.api.http.Status.{ BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, NOT_IMPLEMENTED, OK, REQUEST_TIMEOUT, SERVICE_UNAVAILABLE, UNAUTHORIZED }
-import play.api.libs.json.Json
+import play.api.libs.json.{ JsValue, Json }
 import com.github.tomakehurst.wiremock.http.RequestMethod.POST
 import uk.gov.hmrc.externalmessageadapter.model.GmcPrintResponse.UNKNOWN_HIP_ERROR
 import play.api.test.Helpers.*
@@ -244,6 +244,82 @@ class EISAndHIPConnectorSpec
               "a@a.com",
               Some("CH(A)1700"),
               None,
+              Some("U0582898ZZ2G4F88AAG")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
+
+          result.futureValue mustBe None
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+        }
+
+      "hip.email-bounce-back is enabled, processingPlatform is HIP and formId is" +
+        " one of that are part of bounceback formIds (API 5951) and" +
+        " request has properties with single property" in new TestCaseWithHipEnabled {
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("U0582898ZZ2G4F88AAG")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
+              .withRequestBody(matchingJsonPath("$.properties[?(@.property.name == 'printedVariant')]"))
+              .withRequestBody(matchingJsonPath("$.properties[?(@.property.value == 'false')]"))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(ok.withHeader("correlationid", "e470d65899f74292a4a1ed12c72f1337"))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              "EMAIL_BOUNCE",
+              sourceData,
+              "a@a.com",
+              Some("CH(A)1700"),
+              Some(Json.parse(propertiesWithSinglePropJsonString)),
+              Some("U0582898ZZ2G4F88AAG")
+            )
+
+          val result: Future[Option[GmcPrintResponse]] = eisAndHipConnector.post(reprintRequest, "correlationId", HIP)
+
+          result.futureValue mustBe None
+
+          verifyExactlyOneEndPointUrlHit(hipEndPoint, POST)
+        }
+
+      "hip.email-bounce-back is enabled, processingPlatform is HIP and formId is" +
+        " one of that are part of bounceback formIds (API 5951) and" +
+        " request has properties with multiple properties" in new TestCaseWithHipEnabled {
+
+          wireMockServer.stubFor(
+            post(urlPathMatching(hipEndPoint))
+              .withRequestBody(matchingJsonPath("$.reason", equalTo("EMAIL_BOUNCE")))
+              .withRequestBody(matchingJsonPath("$.sourceData", equalTo(sourceData)))
+              .withRequestBody(matchingJsonPath("$.emailAddress", equalTo("a@a.com")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("U0582898ZZ2G4F88AAG")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.externalRefId", equalTo(externalRefId.value)))
+              .withRequestBody(matchingJsonPath("$.properties[?(@.property.name == 'printedVariant')]"))
+              .withRequestBody(matchingJsonPath("$.properties[?(@.property.value == 'false')]"))
+              .withRequestBody(matchingJsonPath("$.properties[?(@.property.name == 'printedVariant1')]"))
+              .withRequestBody(matchingJsonPath("$.properties[?(@.property.value == 'true')]"))
+              .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
+              .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
+              .willReturn(ok.withHeader("correlationid", "e470d65899f74292a4a1ed12c72f1337"))
+          )
+
+          val reprintRequest: GmcPrintRequest =
+            GmcPrintRequest(
+              "EMAIL_BOUNCE",
+              sourceData,
+              "a@a.com",
+              Some("CH(A)1700"),
+              Some(Json.parse(propertiesWithMulPropJsonString)),
               Some("U0582898ZZ2G4F88AAG")
             )
 
@@ -1020,6 +1096,31 @@ class EISAndHIPConnectorSpec
 
     val externalRefId = Some("U0582898ZZ2G4F88AAG")
     val sourceData = "U29tZSBIYXNoZWQgRGF0YQ=="
+
+    val propertiesWithSinglePropJsonString: String = """[
+                                                       |    {
+                                                       |      "property": {
+                                                       |        "name": "printedVariant",
+                                                       |        "value": "false"
+                                                       |      }
+                                                       |    }
+                                                       |  ]""".stripMargin
+
+    val propertiesWithMulPropJsonString: String =
+      """[
+        |    {
+        |      "property": {
+        |        "name": "printedVariant",
+        |        "value": "false"
+        |      }
+        |    },
+        |   {
+        |      "property": {
+        |        "name": "printedVariant1",
+        |        "value": "true"
+        |      }
+        |    }
+        |]""".stripMargin
 
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)))
     implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]

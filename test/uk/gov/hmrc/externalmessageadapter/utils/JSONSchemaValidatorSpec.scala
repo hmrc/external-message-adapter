@@ -26,7 +26,7 @@ import uk.gov.hmrc.externalmessageadapter.util.SpecBase
 import scala.util.Try
 
 class JSONSchemaValidatorSpec extends SpecBase with TryValues with GuiceOneAppPerSuite with JsonFileReader {
-  val emailBounceBackSchemaPath = "/schemas/email_bounce_back_API_5951_schema_v1.0.json"
+  val emailBounceBackSchemaPath = "/schemas/email_bounce_back_API_5951_schema_v1.0.2.json"
   val emailBounceBackValidRequest = "/email_bounce_back_request_valid.json"
   val emailBounceBackInvalidRequest = "/email_bounce_back_request_invalid.json"
 
