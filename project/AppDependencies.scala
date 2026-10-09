@@ -16,7 +16,7 @@ object AppDependencies {
   lazy val compile: Seq[ModuleID] = Seq(
     caffeine,
     "uk.gov.hmrc"               %% "bootstrap-backend-play-30" % bootstrapVersion,
-    "uk.gov.hmrc"               %% "dc-message-library"        % "1.32.0",
+    "uk.gov.hmrc"               %% "dc-message-library"        % "1.33.0",
     "net.codingwell"            %% "scala-guice"               % guiceVersion,
     "org.jsoup"                  % "jsoup"                     % "1.15.4",
     "com.github.java-json-tools" % "json-schema-validator"     % "2.2.14" exclude ("org.mozilla", "rhino"),
@@ -29,7 +29,6 @@ object AppDependencies {
     "org.scalatestplus" %% "mockito-4-11"            % "3.2.17.0"       % "test",
     "net.codingwell"    %% "scala-guice"             % guiceVersion     % "test",
     "uk.gov.hmrc"       %% "domain-test-play-30"     % "13.0.0"         % "test",
-
     // Pekko Stream testing dependencies
     "org.apache.pekko" %% "pekko-stream-testkit"      % pekkoVersion % Test,
     "org.apache.pekko" %% "pekko-testkit"             % pekkoVersion % Test,

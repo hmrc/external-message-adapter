@@ -47,7 +47,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
 
     "process the event successfully" when {
 
-      "event is BounceEvent and Message formId is CH(A)1700 and paper notification" +
+      "event is BounceEvent and Message formId is CHA1700 and paper notification" +
         " is to be send over HIP" in new TestCaseWithHipEnabled {
           import EventHubEvent.formats
 
@@ -72,7 +72,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
               )
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
               .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -128,7 +128,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
     }
 
     "return the correct error code" when {
-      "event is BounceEvent and Message formId is CH(A)1700 and paper notification" +
+      "event is BounceEvent and Message formId is CHA1700 and paper notification" +
         " is to be send over HIP but upstream response is of INTERNAL_SERVER_ERROR" in new TestCaseWithHipEnabled {
 
           import EventHubEvent.formats
@@ -167,7 +167,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
               )
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
               .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -220,7 +220,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
             )
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
             .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
-            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
             .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -262,7 +262,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
             )
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
             .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
-            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
             .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -304,7 +304,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
             )
             .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
             .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
-            .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+            .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
             .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
             .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -442,7 +442,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
               )
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
               .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -458,7 +458,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
                 )
               )
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
               .willReturn(jsonResponse(expectedEISResponse, OK))
           )
 
@@ -517,7 +517,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
               )
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
               .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -533,7 +533,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
                 )
               )
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
               .willReturn(jsonResponse(expectedEISResponse, OK))
           )
 
@@ -578,7 +578,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
               )
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
               .withRequestBody(matchingJsonPath("$.externalRefId", equalTo("2342342341")))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
               .withHeader(CONTENT_TYPE, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(ACCEPT, equalTo(CONTENT_TYPE_APPLICATION_JSON))
               .withHeader(AUTHORIZATION, equalTo("Basic QWJDZEVmMTIzNDU2OkFiQ2RFZjEyMzg5Nw=="))
@@ -594,7 +594,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
                 )
               )
               .withRequestBody(matchingJsonPath("$.emailAddress", equalTo(TEST_EMAIL_ADDRESS_VALUE)))
-              .withRequestBody(matchingJsonPath("$.formId", equalTo("CH(A)1700")))
+              .withRequestBody(matchingJsonPath("$.formId", equalTo("CHA1700")))
               .willReturn(jsonResponse(expectedEISResponse, OK))
           )
 
@@ -697,7 +697,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
         |  ]""".stripMargin
 
     val details = Details(
-      Some("CH(A)1700"),
+      Some("CHA1700"),
       Some("print-suppression-notification"),
       Some(TEST_LOCAL_DATE.minusDays(1).toString),
       Some("C0123456781234568"),
@@ -749,7 +749,7 @@ class EventHubProcessorControllerISpec extends SpecBase with GuiceOneAppPerSuite
       EventHubEvent(eventId = TEST_ID, timestamp = TEST_LOCAL_DATE_TIME, event = eventBody)
 
     val details = Details(
-      Some("CH(A)1700"),
+      Some("CHA1700"),
       Some("print-suppression-notification"),
       Some(TEST_LOCAL_DATE.minusDays(1).toString),
       Some("C0123456781234568")

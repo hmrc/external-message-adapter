@@ -261,7 +261,7 @@ class PaperNotificationServiceSpec
 
     "be sent to HIP for bounce event" when {
       "formId is of API 5951 and hip processing is enabled" in new TestCaseWithHipEnabled {
-        val formId = "CH(A)1700"
+        val formId = "CHA1700"
 
         reset(mockEisAndHipConnector)
         when(mockEisAndHipConnector.post(any[GmcPrintRequest](), any[String](), ArgumentMatchers.eq(HIP)))
@@ -331,7 +331,7 @@ class PaperNotificationServiceSpec
 
       "formId is of API 5951, hip processing is enabled but" +
         " bounceback formIds is empty" in new TestCaseWithEmptyBounceBackFormIdsAndHipEnabled {
-          val formId = "CH(A)1708"
+          val formId = "CHA1708"
           reset(mockEisAndHipConnector)
           when(mockEisAndHipConnector.post(any[GmcPrintRequest](), any[String](), ArgumentMatchers.eq(EIS)))
             .thenReturn(Future.successful(None))
@@ -448,7 +448,7 @@ class PaperNotificationServiceSpec
       .overrides(bind[EISAndHIPConnector].toInstance(mockEisAndHipConnector))
       .configure(
         "gmc.denylist"                                        -> List("SA999", "SA888"),
-        "microservice.services.hip.email-bounce-back.formIds" -> List("CH(A)1700", "CH(A)1708"),
+        "microservice.services.hip.email-bounce-back.formIds" -> List("CHA1700", "CHA1708"),
         "metrics.enabled"                                     -> "false",
         "handle.bounce.eventhub"                              -> "true",
         "microservice.services.hip.email-bounce-back.enabled" -> true
@@ -513,7 +513,7 @@ class PaperNotificationServiceSpec
       .overrides(bind[EISAndHIPConnector].toInstance(mockEisAndHipConnector))
       .configure(
         "gmc.denylist"                                        -> List("SA999", "SA888"),
-        "microservice.services.hip.email-bounce-back.formIds" -> List("CH(A)1700", "CH(A)1708"),
+        "microservice.services.hip.email-bounce-back.formIds" -> List("CHA1700", "CHA1708"),
         "metrics.enabled"                                     -> "false",
         "handle.bounce.eventhub"                              -> "true",
         "microservice.services.hip.email-bounce-back.enabled" -> false
