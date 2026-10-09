@@ -15,36 +15,35 @@ object AppDependencies {
 
   lazy val compile: Seq[ModuleID] = Seq(
     caffeine,
-    "uk.gov.hmrc"               %% "bootstrap-backend-play-30" % bootstrapVersion,
-    "uk.gov.hmrc"               %% "dc-message-library"        % "1.32.0",
-    "net.codingwell"            %% "scala-guice"               % guiceVersion,
-    "org.jsoup"                  % "jsoup"                     % "1.15.4",
-    "com.github.java-json-tools" % "json-schema-validator"     % "2.2.14" exclude ("org.mozilla", "rhino"),
-    "org.mozilla"                % "rhino"                     % "1.9.1"
+    "uk.gov.hmrc" %% "bootstrap-backend-play-30" % bootstrapVersion,
+    "uk.gov.hmrc" %% "dc-message-library" % "1.33.0",
+    "net.codingwell" %% "scala-guice" % guiceVersion,
+    "org.jsoup" % "jsoup" % "1.15.4",
+    "com.github.java-json-tools" % "json-schema-validator" % "2.2.14" exclude ("org.mozilla", "rhino"),
+    "org.mozilla" % "rhino" % "1.9.1"
   )
 
   lazy val test: Seq[ModuleID] = Seq(
-    "uk.gov.hmrc"       %% "bootstrap-test-play-30"  % bootstrapVersion % "test",
+    "uk.gov.hmrc" %% "bootstrap-test-play-30" % bootstrapVersion % "test",
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-30" % hmrcMongoVersion % "test",
-    "org.scalatestplus" %% "mockito-4-11"            % "3.2.17.0"       % "test",
-    "net.codingwell"    %% "scala-guice"             % guiceVersion     % "test",
-    "uk.gov.hmrc"       %% "domain-test-play-30"     % "13.0.0"         % "test",
-
+    "org.scalatestplus" %% "mockito-4-11" % "3.2.17.0" % "test",
+    "net.codingwell" %% "scala-guice" % guiceVersion % "test",
+    "uk.gov.hmrc" %% "domain-test-play-30" % "13.0.0" % "test",
     // Pekko Stream testing dependencies
-    "org.apache.pekko" %% "pekko-stream-testkit"      % pekkoVersion % Test,
-    "org.apache.pekko" %% "pekko-testkit"             % pekkoVersion % Test,
+    "org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion % Test,
+    "org.apache.pekko" %% "pekko-testkit" % pekkoVersion % Test,
     "org.apache.pekko" %% "pekko-actor-testkit-typed" % pekkoVersion % Test
   )
 
   lazy val appDependencies: Seq[ModuleID] = compile ++ test
 
   val overrides: Seq[ModuleID] = Seq(
-    "org.apache.pekko" %% "pekko-stream"                % pekkoVersion,
-    "org.apache.pekko" %% "pekko-protobuf"              % pekkoVersion,
-    "org.apache.pekko" %% "pekko-slf4j"                 % pekkoVersion,
-    "org.apache.pekko" %% "pekko-actor"                 % pekkoVersion,
-    "org.apache.pekko" %% "pekko-actor-typed"           % pekkoVersion,
+    "org.apache.pekko" %% "pekko-stream" % pekkoVersion,
+    "org.apache.pekko" %% "pekko-protobuf" % pekkoVersion,
+    "org.apache.pekko" %% "pekko-slf4j" % pekkoVersion,
+    "org.apache.pekko" %% "pekko-actor" % pekkoVersion,
+    "org.apache.pekko" %% "pekko-actor-typed" % pekkoVersion,
     "org.apache.pekko" %% "pekko-serialization-jackson" % pekkoVersion,
-    "org.apache.pekko" %% "pekko-http-core"             % pekkoHttpVersion
+    "org.apache.pekko" %% "pekko-http-core" % pekkoHttpVersion
   )
 }
